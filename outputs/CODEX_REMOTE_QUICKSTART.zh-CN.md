@@ -115,3 +115,10 @@ outputs/home-mac-bridge/uninstall-launch-agent.sh
 ```bash
 outputs/smoke-local-end-to-end.sh
 ```
+
+真实 GitHub inbox 端到端烟测：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/smoke-github-inbox-real.sh
+```

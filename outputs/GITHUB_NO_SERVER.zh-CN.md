@@ -77,6 +77,15 @@ set +a
 outputs/home-mac-bridge/start-home-mac-github.sh
 ```
 
+真实端到端验证：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/smoke-github-inbox-real.sh
+```
+
+这个脚本会创建一个临时 label 和测试 issue，只让临时连接器处理这一个测试任务；等 Codex 完成评论后自动关闭测试 issue 并删除临时 label。
+
 安装开机自启：
 
 ```bash
