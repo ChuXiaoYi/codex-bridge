@@ -25,5 +25,7 @@
 	</dict>
 	<key>WKApplication</key>
 	<true/>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.chuxiaoyi.CodexRemote</string>
 </dict>
 </plist>
