@@ -107,6 +107,9 @@ github_request() {
   local body="${4:-}"
   local args=(
     -sS
+    --retry 3
+    --retry-delay 1
+    --retry-all-errors
     -o "$output_file"
     -w "%{http_code}"
     -X "$method"

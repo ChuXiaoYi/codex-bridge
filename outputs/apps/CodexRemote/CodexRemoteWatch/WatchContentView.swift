@@ -67,6 +67,8 @@ struct WatchContentView: View {
                             .textInputAutocapitalization(.never)
                         TextField("Label", text: $store.githubLabel)
                             .textInputAutocapitalization(.never)
+                        TextField("Done Label", text: $store.githubDoneLabel)
+                            .textInputAutocapitalization(.never)
                         SecureField("Token", text: $store.githubToken)
                             .textInputAutocapitalization(.never)
                     }

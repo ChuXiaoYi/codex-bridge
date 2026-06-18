@@ -51,6 +51,10 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
         didSet { defaults.set(githubLabel, forKey: Keys.githubLabel) }
     }
 
+    @Published var githubDoneLabel: String {
+        didSet { defaults.set(githubDoneLabel, forKey: Keys.githubDoneLabel) }
+    }
+
     @Published var taskText = ""
     @Published var status = "Ready"
     @Published var isSending = false
@@ -70,6 +74,7 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
         self.githubRepo = defaults.string(forKey: Keys.githubRepo) ?? ""
         self.githubToken = defaults.string(forKey: Keys.githubToken) ?? ""
         self.githubLabel = defaults.string(forKey: Keys.githubLabel) ?? "codex-remote"
+        self.githubDoneLabel = defaults.string(forKey: Keys.githubDoneLabel) ?? "codex-done"
         super.init()
         configurePhoneSync()
     }
@@ -215,7 +220,8 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
             token: githubToken,
             label: githubLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "codex-remote"
-                : githubLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+                : githubLabel.trimmingCharacters(in: .whitespacesAndNewlines),
+            doneLabel: githubDoneLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         )
     }
 
@@ -245,6 +251,7 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
         githubRepo = payload["githubRepo"] ?? githubRepo
         githubToken = payload["githubToken"] ?? githubToken
         githubLabel = payload["githubLabel"] ?? githubLabel
+        githubDoneLabel = payload["githubDoneLabel"] ?? githubDoneLabel
         phoneSyncStatus = source
     }
 
@@ -288,6 +295,7 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
         static let githubRepo = "githubRepo"
         static let githubToken = "githubToken"
         static let githubLabel = "githubLabel"
+        static let githubDoneLabel = "githubDoneLabel"
     }
 }
 
@@ -408,6 +416,7 @@ struct WatchGitHubAPI {
     var repo: String
     var token: String
     var label: String
+    var doneLabel: String
 
     func listIssues(limit: Int = 8) async throws -> [WatchCodexThread] {
         guard !owner.isEmpty, !repo.isEmpty else {
@@ -422,7 +431,10 @@ struct WatchGitHubAPI {
             URLQueryItem(name: "per_page", value: String(limit)),
         ]
         let issues: [WatchGitHubIssue] = try await request(components?.url ?? repoURL("issues"))
-        return issues.filter { $0.pullRequest == nil }.map { $0.codexThread }
+        return issues
+            .filter { $0.pullRequest == nil }
+            .filter { !$0.hasLabel(doneLabel) }
+            .map { $0.codexThread }
     }
 
     func createIssue(text: String) async throws {
@@ -519,6 +531,7 @@ struct WatchGitHubIssue: Decodable {
     let state: String
     let updatedAt: String?
     let pullRequest: WatchJSONValue?
+    let labels: [WatchGitHubLabel]?
 
     enum CodingKeys: String, CodingKey {
         case number
@@ -527,6 +540,13 @@ struct WatchGitHubIssue: Decodable {
         case state
         case updatedAt = "updated_at"
         case pullRequest = "pull_request"
+        case labels
+    }
+
+    func hasLabel(_ name: String) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return labels?.contains { $0.name == trimmed } ?? false
     }
 
     var codexThread: WatchCodexThread {
@@ -540,6 +560,10 @@ struct WatchGitHubIssue: Decodable {
             updatedAt: nil
         )
     }
+}
+
+struct WatchGitHubLabel: Decodable {
+    let name: String
 }
 
 struct WatchGitHubIssueComment: Decodable {

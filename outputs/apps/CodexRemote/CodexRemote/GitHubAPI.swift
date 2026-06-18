@@ -6,6 +6,7 @@ struct GitHubAPI {
     var repo: String
     var token: String
     var label: String
+    var doneLabel: String
     var session: URLSession = .shared
 
     func listIssues(limit: Int = 20) async throws -> [CodexThread] {
@@ -22,7 +23,10 @@ struct GitHubAPI {
             URLQueryItem(name: "per_page", value: String(limit)),
         ]
         let issues: [GitHubIssue] = try await request(components?.url ?? repoURL("issues"))
-        return issues.filter { $0.pullRequest == nil }.map { $0.codexThread }
+        return issues
+            .filter { $0.pullRequest == nil }
+            .filter { !$0.hasLabel(doneLabel) }
+            .map { $0.codexThread }
     }
 
     func createIssue(text: String) async throws {
@@ -120,6 +124,7 @@ struct GitHubIssue: Decodable {
     let state: String
     let updatedAt: String?
     let pullRequest: JSONValue?
+    let labels: [GitHubLabel]?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -129,6 +134,13 @@ struct GitHubIssue: Decodable {
         case state
         case updatedAt = "updated_at"
         case pullRequest = "pull_request"
+        case labels
+    }
+
+    func hasLabel(_ name: String) -> Bool {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return labels?.contains { $0.name == trimmed } ?? false
     }
 
     var codexThread: CodexThread {
@@ -143,6 +155,10 @@ struct GitHubIssue: Decodable {
             updatedAt: updatedAt.flatMap { ISO8601DateFormatter.githubDate(from: $0)?.timeIntervalSince1970 }
         )
     }
+}
+
+struct GitHubLabel: Decodable {
+    let name: String
 }
 
 struct GitHubIssueComment: Decodable {

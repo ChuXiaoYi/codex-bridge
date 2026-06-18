@@ -95,6 +95,8 @@ struct ContentView: View {
                             .textInputAutocapitalization(.never)
                         TextField("Label", text: $settings.githubLabel)
                             .textInputAutocapitalization(.never)
+                        TextField("Done Label", text: $settings.githubDoneLabel)
+                            .textInputAutocapitalization(.never)
                         SecureField("GitHub token", text: $settings.githubToken)
                             .textInputAutocapitalization(.never)
                     }

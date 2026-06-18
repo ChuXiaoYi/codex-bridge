@@ -79,6 +79,13 @@ final class RelaySettings: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    @Published var githubDoneLabel: String {
+        didSet {
+            defaults.set(githubDoneLabel, forKey: Keys.githubDoneLabel)
+            scheduleWatchSettingsSync()
+        }
+    }
+
     @Published private(set) var watchSyncStatus = "Watch sync idle"
 
     private let defaults: UserDefaults
@@ -95,6 +102,7 @@ final class RelaySettings: NSObject, ObservableObject, WCSessionDelegate {
         self.githubRepo = defaults.string(forKey: Keys.githubRepo) ?? ""
         self.githubToken = defaults.string(forKey: Keys.githubToken) ?? ""
         self.githubLabel = defaults.string(forKey: Keys.githubLabel) ?? "codex-remote"
+        self.githubDoneLabel = defaults.string(forKey: Keys.githubDoneLabel) ?? "codex-done"
         super.init()
         configureWatchConnectivity()
     }
@@ -182,6 +190,7 @@ final class RelaySettings: NSObject, ObservableObject, WCSessionDelegate {
             "githubRepo": githubRepo,
             "githubToken": githubToken,
             "githubLabel": githubLabel,
+            "githubDoneLabel": githubDoneLabel,
             "syncedAt": String(Date().timeIntervalSince1970),
         ]
     }
@@ -233,5 +242,6 @@ final class RelaySettings: NSObject, ObservableObject, WCSessionDelegate {
         static let githubRepo = "githubRepo"
         static let githubToken = "githubToken"
         static let githubLabel = "githubLabel"
+        static let githubDoneLabel = "githubDoneLabel"
     }
 }

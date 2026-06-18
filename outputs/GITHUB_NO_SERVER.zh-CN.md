@@ -115,9 +115,10 @@ outputs/home-mac-bridge/status-launch-agent.sh
 1. 打开 CodexRemote。
 2. Backend 选 `GitHub`。
 3. 填 `Owner`、`Repo`、`Label` 和 GitHub token。
-4. 点 `Sync Settings to Watch`，把这套配置发到 Apple Watch。
-5. `Send Task` 会创建 GitHub issue。
-6. 打开 issue 后输入新指令，`Comment` 会追加 GitHub comment。
+4. `Done Label` 默认是 `codex-done`，带这个 label 的完成 issue 不会出现在任务列表里。
+5. 点 `Sync Settings to Watch`，把这套配置发到 Apple Watch。
+6. `Send Task` 会创建 GitHub issue。
+7. 打开 issue 后输入新指令，`Comment` 会追加 GitHub comment。
 
 ### GitHub Mobile
 
@@ -140,6 +141,7 @@ outputs/home-mac-bridge/status-launch-agent.sh
 
 - 连接器会在 issue 里评论 `Started Codex thread ...`。
 - Codex 完成后会评论完成摘要，并给 issue 加 `codex-done` label。
+- CodexRemote iPhone/Watch 默认隐藏带 `codex-done` 的 open issue，让列表只显示待处理任务。
 - 在任意 issue 评论 `/codex list`，连接器会回复最近 Codex threads。
 
 ## Apple Watch 语音发任务

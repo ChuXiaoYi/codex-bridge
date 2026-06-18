@@ -105,6 +105,9 @@ github_request() {
   local api_url="${GITHUB_API_URL:-https://api.github.com}"
   api_url="${api_url%/}"
   curl -sS \
+    --retry 3 \
+    --retry-delay 1 \
+    --retry-all-errors \
     -o "$output_file" \
     -w "%{http_code}" \
     -X "$method" \
