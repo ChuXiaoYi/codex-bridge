@@ -65,3 +65,12 @@ Remote push notifications require:
 For local simulator testing, use the Relay and Home Mac Bridge READMEs. For real remote use, deploy `outputs/relay/relay.mjs` to a public HTTPS host and run `outputs/home-mac-bridge/relay-client.mjs` on the Home Mac.
 
 For GitHub no-server mode, fill the GitHub owner, repo, label, and token on iPhone first, then tap `Sync Settings to Watch`. On Watch, `Request iPhone Settings` can ask the open iPhone app to resend the same configuration.
+
+The GitHub backend contract used by both iPhone and Watch can be smoked from the Mac before installing on devices:
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/smoke-mobile-github-contract.sh
+```
+
+That smoke creates a labeled issue, verifies issue listing, adds a follow-up comment, and waits for the installed Home Mac service to complete the same thread.

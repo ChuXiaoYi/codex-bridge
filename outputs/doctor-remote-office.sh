@@ -5,6 +5,7 @@ OUTPUT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${CODEX_REMOTE_ENV_FILE:-$HOME/.codex-remote-home-mac.env}"
 RUN_REAL_SMOKE=0
 RUN_SERVICE_SMOKE=0
+RUN_MOBILE_CONTRACT=0
 RUN_APP_BUILDS=0
 STRICT=0
 FAILURES=0
@@ -13,7 +14,7 @@ WARNINGS=0
 usage() {
   cat <<'EOF'
 Usage:
-  doctor-remote-office.sh [--env FILE] [--real-smoke] [--service-smoke] [--build-apps] [--strict]
+  doctor-remote-office.sh [--env FILE] [--real-smoke] [--service-smoke] [--mobile-contract] [--build-apps] [--strict]
   doctor-remote-office.sh [--env FILE] --ready
 
 Checks the Codex Remote Office setup without installing background services.
@@ -22,9 +23,10 @@ Options:
   --env FILE     Home Mac env file. Defaults to ~/.codex-remote-home-mac.env
   --real-smoke   Run the real GitHub inbox smoke that creates and closes a test issue
   --service-smoke Run a real GitHub smoke through the installed Home Mac service
+  --mobile-contract Run a GitHub create/list/comment smoke matching the mobile app contract
   --build-apps   Build the iPhone and watchOS targets with CODE_SIGNING_ALLOWED=NO
   --strict       Exit non-zero when any warnings remain
-  --ready        Full readiness gate: --service-smoke --build-apps --strict
+  --ready        Full readiness gate: --service-smoke --mobile-contract --build-apps --strict
   -h, --help    Show this help
 EOF
 }
@@ -43,6 +45,10 @@ while [[ $# -gt 0 ]]; do
       RUN_SERVICE_SMOKE=1
       shift
       ;;
+    --mobile-contract)
+      RUN_MOBILE_CONTRACT=1
+      shift
+      ;;
     --build-apps)
       RUN_APP_BUILDS=1
       shift
@@ -53,6 +59,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --ready)
       RUN_SERVICE_SMOKE=1
+      RUN_MOBILE_CONTRACT=1
       RUN_APP_BUILDS=1
       STRICT=1
       shift
@@ -372,6 +379,20 @@ check_service_smoke() {
   fi
 }
 
+check_mobile_contract() {
+  section "Mobile GitHub Contract Smoke"
+  if [[ "$RUN_MOBILE_CONTRACT" != "1" ]]; then
+    note "Skipped mobile contract smoke; pass --mobile-contract to test create/list/comment via GitHub"
+    return
+  fi
+
+  if CODEX_REMOTE_ENV_FILE="$ENV_FILE" "$OUTPUT_DIR/smoke-mobile-github-contract.sh"; then
+    pass "Mobile GitHub contract smoke passed"
+  else
+    fail "Mobile GitHub contract smoke failed"
+  fi
+}
+
 check_app_builds() {
   section "Mobile Builds"
   if [[ "$RUN_APP_BUILDS" != "1" ]]; then
@@ -409,6 +430,7 @@ check_launch_agent
 check_processes
 check_real_smoke
 check_service_smoke
+check_mobile_contract
 check_app_builds
 
 section "Summary"

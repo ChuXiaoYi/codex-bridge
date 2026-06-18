@@ -122,7 +122,14 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
   outputs/doctor-remote-office.sh --ready
 ```
 
-`--ready` 会通过已安装的 Home Mac 自启服务跑真实 GitHub 烟测，构建 iPhone/watchOS target，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果卡在自启服务，先安装/加载 Home Mac 服务；如果卡在 GitHub 自通知，换 bot/小号 token 后再跑。
+`--ready` 会通过已安装的 Home Mac 自启服务跑真实 GitHub 烟测，验证和 iPhone/Watch app 同款的 create/list/comment 合约，构建 iPhone/watchOS target，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果卡在自启服务，先安装/加载 Home Mac 服务；如果卡在 GitHub 自通知，换 bot/小号 token 后再跑。
+
+只测 iPhone/Watch app 同款 GitHub 合约：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/smoke-mobile-github-contract.sh
+```
 
 只测手机/手表通知：
 

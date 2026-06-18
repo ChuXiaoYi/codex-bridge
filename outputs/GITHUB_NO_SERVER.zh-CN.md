@@ -147,7 +147,16 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
   outputs/doctor-remote-office.sh --ready
 ```
 
-`--ready` 会通过已安装的 Home Mac 自启服务跑真实 GitHub 端到端烟测，构建 iPhone/watchOS target，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果提示 Home Mac 服务没装或没运行，说明这台 Mac 还不会自动盯信箱；如果提示 token actor 和通知目标相同，说明手机完成通知还不够可靠。
+`--ready` 会通过已安装的 Home Mac 自启服务跑真实 GitHub 端到端烟测，验证和 iPhone/Watch app 同款的 create/list/comment 合约，构建 iPhone/watchOS target，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果提示 Home Mac 服务没装或没运行，说明这台 Mac 还不会自动盯信箱；如果提示 token actor 和通知目标相同，说明手机完成通知还不够可靠。
+
+只测 iPhone/Watch app 同款 GitHub 合约：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/smoke-mobile-github-contract.sh
+```
+
+它会创建一个临时 issue，确认带 `codex-remote` label 的 open issue 列表能看到它，追加一条 comment，等待家里 Mac 把 comment 送到同一个 Codex thread，再确认完成评论、`codex-done` label 和通知 assignee。
 
 只测 iPhone/Watch 是否能收到 GitHub Mobile 完成通知：
 
@@ -182,6 +191,8 @@ outputs/home-mac-bridge/status-launch-agent.sh
 6. `Send Task` 会创建 GitHub issue。
 7. 打开 issue 后会加载最近评论，包括 Codex 的完成摘要。
 8. 输入新指令，`Comment` 会追加 GitHub comment。
+
+同款 GitHub create/list/comment 合约可以在 Mac 上先用 `outputs/smoke-mobile-github-contract.sh` 验证；真机上仍需要你确认 CodexRemote app 的界面操作和 Watch 语音输入。
 
 ### GitHub Mobile
 
