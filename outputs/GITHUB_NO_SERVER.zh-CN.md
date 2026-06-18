@@ -101,6 +101,20 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
 给主账号开 private repo 访问权限：
 
 - GitHub UI：在小号的 `codex-remote` repo 里打开 `Settings` -> `Collaborators and teams`，邀请主账号 `ChuXiaoYi`，主账号接受邀请。
+- 本地辅助脚本预览将邀请谁：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/home-mac-bridge/invite-github-notify-collaborator.sh
+```
+
+- 本地辅助脚本发送邀请：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/home-mac-bridge/invite-github-notify-collaborator.sh --apply
+```
+
 - API：如果小号 token 有仓库管理权限，可以运行：
 
 ```bash

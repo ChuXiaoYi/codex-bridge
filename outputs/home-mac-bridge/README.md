@@ -52,7 +52,13 @@ Preflight the GitHub inbox before installing the LaunchAgent:
 CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env ./doctor-github-inbox.sh
 ```
 
-The checker verifies GitHub auth, repository privacy, Issues, task/completion labels, optional notify assignees, and the local Codex Desktop CLI path. It refuses public repositories unless `GITHUB_ALLOW_PUBLIC_REPO=1` is explicitly set.
+The checker verifies GitHub auth, repository privacy, Issues, task/completion labels, optional notify collaborator access/assignees, and the local Codex Desktop CLI path. It refuses public repositories unless `GITHUB_ALLOW_PUBLIC_REPO=1` is explicitly set.
+
+Dry-run collaborator invitations for notify targets:
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env ./invite-github-notify-collaborator.sh
+```
 
 Install as a login-time LaunchAgent:
 

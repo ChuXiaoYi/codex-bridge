@@ -141,6 +141,24 @@ count_json_array() {
   node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(Array.isArray(data) ? data.length : 0);' "$1"
 }
 
+count_pending_github_tasks() {
+  local file="$1"
+  local done_label="$2"
+  node - "$file" "$done_label" <<'NODE'
+const fs = require("fs");
+const [, , file, doneLabel] = process.argv;
+const issues = JSON.parse(fs.readFileSync(file, "utf8"));
+let pending = 0;
+let completedOpen = 0;
+for (const issue of Array.isArray(issues) ? issues : []) {
+  const labels = new Set((issue.labels || []).map((label) => label.name));
+  if (doneLabel && labels.has(doneLabel)) completedOpen += 1;
+  else pending += 1;
+}
+console.log(`${pending} ${completedOpen}`);
+NODE
+}
+
 json_value() {
   local file="$1"
   local key="$2"
@@ -196,10 +214,11 @@ check_github_preflight() {
     return
   fi
 
-  local owner repo task_label owner_path repo_path label_path tmp_body code open_count
+  local owner repo task_label done_label owner_path repo_path label_path tmp_body code counts pending_count completed_open_count
   owner="${GITHUB_OWNER:-}"
   repo="${GITHUB_REPO:-}"
   task_label="${GITHUB_TASK_LABEL:-codex-remote}"
+  done_label="${GITHUB_DONE_LABEL:-codex-done}"
   if [[ -z "$owner" || -z "$repo" ]]; then
     fail "GITHUB_OWNER or GITHUB_REPO is missing"
     return
@@ -211,8 +230,13 @@ check_github_preflight() {
   tmp_body="$(mktemp)"
   code="$(github_request GET "/repos/${owner_path}/${repo_path}/issues?state=open&labels=${label_path}&per_page=30" "$tmp_body")"
   if [[ "$code" =~ ^2 ]]; then
-    open_count="$(count_json_array "$tmp_body")"
-    pass "Open '${task_label}' tasks: ${open_count}"
+    counts="$(count_pending_github_tasks "$tmp_body" "$done_label")"
+    pending_count="${counts%% *}"
+    completed_open_count="${counts##* }"
+    pass "Open pending '${task_label}' tasks: ${pending_count}"
+    if [[ "$completed_open_count" != "0" ]]; then
+      note "Open completed '${task_label}' issues with '${done_label}': ${completed_open_count}"
+    fi
   else
     fail "Could not list open GitHub inbox tasks, HTTP ${code}"
     sed -n '1,20p' "$tmp_body"
