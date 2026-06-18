@@ -121,6 +121,26 @@ count_json_array() {
   node -e 'const fs=require("fs"); const data=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); console.log(Array.isArray(data) ? data.length : 0);' "$1"
 }
 
+json_value() {
+  local file="$1"
+  local key="$2"
+  node - "$file" "$key" <<'NODE'
+const fs = require("fs");
+const [, , file, key] = process.argv;
+const data = JSON.parse(fs.readFileSync(file, "utf8"));
+const value = data[key];
+if (typeof value === "boolean") {
+  console.log(value ? "true" : "false");
+} else if (value !== null && value !== undefined) {
+  console.log(String(value));
+}
+NODE
+}
+
+normalize_login() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 load_env() {
   section "Environment"
   if [[ ! -f "$ENV_FILE" ]]; then
@@ -178,6 +198,76 @@ check_github_preflight() {
     sed -n '1,20p' "$tmp_body"
   fi
   rm -f "$tmp_body"
+}
+
+check_github_notifications() {
+  section "GitHub Mobile Notification Path"
+  if [[ "${CODEX_REMOTE_BACKEND:-}" != "github" ]]; then
+    note "Skipped; CODEX_REMOTE_BACKEND is not github"
+    return
+  fi
+
+  if ! resolve_github_token; then
+    fail "Could not resolve GitHub token for notification checks"
+    return
+  fi
+
+  local tmp_body code actor actor_key targets_count same_actor_count different_actor_count target target_key username
+  tmp_body="$(mktemp)"
+  code="$(github_request GET "/user" "$tmp_body")"
+  if [[ "$code" =~ ^2 ]]; then
+    actor="$(json_value "$tmp_body" login)"
+    pass "GitHub token actor: ${actor}"
+  else
+    fail "Could not identify GitHub token actor, HTTP ${code}"
+    sed -n '1,20p' "$tmp_body"
+    rm -f "$tmp_body"
+    return
+  fi
+  rm -f "$tmp_body"
+
+  actor_key="$(normalize_login "$actor")"
+  targets_count=0
+  same_actor_count=0
+  different_actor_count=0
+
+  if [[ -n "${GITHUB_NOTIFY_USERNAME:-}" ]]; then
+    targets_count=$((targets_count + 1))
+    target_key="$(normalize_login "$GITHUB_NOTIFY_USERNAME")"
+    if [[ "$target_key" == "$actor_key" ]]; then
+      same_actor_count=$((same_actor_count + 1))
+    else
+      different_actor_count=$((different_actor_count + 1))
+    fi
+  fi
+
+  if [[ -n "${GITHUB_NOTIFY_ASSIGNEES:-}" ]]; then
+    IFS=',' read -r -a notify_assignees <<<"$GITHUB_NOTIFY_ASSIGNEES"
+    for username in "${notify_assignees[@]}"; do
+      target="$(printf '%s' "$username" | xargs)"
+      if [[ -z "$target" ]]; then
+        continue
+      fi
+      targets_count=$((targets_count + 1))
+      target_key="$(normalize_login "$target")"
+      if [[ "$target_key" == "$actor_key" ]]; then
+        same_actor_count=$((same_actor_count + 1))
+      else
+        different_actor_count=$((different_actor_count + 1))
+      fi
+    done
+  fi
+
+  if [[ "$targets_count" == "0" ]]; then
+    warn "No GITHUB_NOTIFY_USERNAME or GITHUB_NOTIFY_ASSIGNEES set; completion comments may not alert GitHub Mobile"
+  elif [[ "$different_actor_count" == "0" && "$same_actor_count" -gt "0" ]]; then
+    warn "GitHub notify target is the same account as the token actor; GitHub Mobile may suppress self-triggered notifications"
+    note "For reliable alerts, use a bot/secondary token on the Mac and set notify username/assignees to your main account"
+  else
+    pass "At least one notify target differs from the token actor"
+  fi
+
+  note "This Mac cannot inspect iPhone/Watch GitHub Mobile notification settings; confirm them on device"
 }
 
 check_launch_agent() {
@@ -256,6 +346,7 @@ check_app_builds() {
 
 load_env
 check_github_preflight
+check_github_notifications
 check_launch_agent
 check_processes
 check_real_smoke

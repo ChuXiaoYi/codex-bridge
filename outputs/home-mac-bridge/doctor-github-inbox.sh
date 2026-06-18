@@ -123,6 +123,10 @@ if (typeof value === "boolean") {
 NODE
 }
 
+normalize_login() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
 github_request() {
   local method="$1"
   local path="$2"
@@ -241,6 +245,41 @@ if [[ -n "${GITHUB_NOTIFY_ASSIGNEES:-}" ]]; then
     check_response "$CODE" "$TMP_BODY" "Notify assignee lookup"
     echo "Notify assignee: ${username}"
   done
+fi
+
+CODE="$(github_request GET "/user" "$TMP_BODY")"
+check_response "$CODE" "$TMP_BODY" "Authenticated user lookup"
+TOKEN_ACTOR="$(json_value "$TMP_BODY" login)"
+echo "GitHub token actor: ${TOKEN_ACTOR}"
+
+NOTIFY_TARGETS=()
+if [[ -n "${GITHUB_NOTIFY_USERNAME:-}" ]]; then
+  NOTIFY_TARGETS+=("$GITHUB_NOTIFY_USERNAME")
+fi
+if [[ -n "${GITHUB_NOTIFY_ASSIGNEES:-}" ]]; then
+  IFS=',' read -r -a notify_assignees <<<"$GITHUB_NOTIFY_ASSIGNEES"
+  for username in "${notify_assignees[@]}"; do
+    username="$(echo "$username" | xargs)"
+    if [[ -n "$username" ]]; then
+      NOTIFY_TARGETS+=("$username")
+    fi
+  done
+fi
+
+if [[ "${#NOTIFY_TARGETS[@]}" == "0" ]]; then
+  echo "Warning: no GITHUB_NOTIFY_USERNAME or GITHUB_NOTIFY_ASSIGNEES set; completion comments may not alert GitHub Mobile." >&2
+else
+  TOKEN_ACTOR_KEY="$(normalize_login "$TOKEN_ACTOR")"
+  DIFFERENT_NOTIFY_TARGET=0
+  for username in "${NOTIFY_TARGETS[@]}"; do
+    if [[ "$(normalize_login "$username")" != "$TOKEN_ACTOR_KEY" ]]; then
+      DIFFERENT_NOTIFY_TARGET=1
+      break
+    fi
+  done
+  if [[ "$DIFFERENT_NOTIFY_TARGET" != "1" ]]; then
+    echo "Warning: notify targets match the token actor. GitHub Mobile may suppress self-triggered notifications; use a bot/secondary token on the Mac for more reliable alerts." >&2
+  fi
 fi
 
 if [[ ! -x /Applications/Codex.app/Contents/Resources/codex ]]; then

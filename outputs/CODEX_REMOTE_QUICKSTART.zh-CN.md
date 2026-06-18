@@ -18,7 +18,7 @@
 核心做法：
 
 1. 建一个 GitHub private repo，以及 `codex-remote`、`codex-done` 两个 label。
-2. 创建只允许 Issues 读写的 fine-grained token。
+2. 创建只允许 Issues 读写的 fine-grained token；为了手机通知更可靠，推荐 token 属于 GitHub bot/小号，主账号只负责收 GitHub Mobile 通知。
 3. 家里 Mac 设置 `CODEX_REMOTE_BACKEND=github`、`GITHUB_TOKEN`、`GITHUB_OWNER`、`GITHUB_REPO`。
 4. 先跑 `outputs/home-mac-bridge/doctor-github-inbox.sh` 预检，确认 repo 是 private、Issues、label 和通知 assignee 都可用。
 5. 用 `outputs/home-mac-bridge/install-launch-agent.sh` 开机自启。
@@ -93,6 +93,7 @@ outputs/home-mac-bridge/install-launch-agent.sh
 ## 当前边界
 
 - 本机已经验证了 Bridge、Relay、命令转发、事件转发、通知事件、iPhone build、watchOS build。
+- GitHub 无服务器模式的系统通知依赖 GitHub Mobile；如果 token actor 和通知目标是同一个 GitHub 账号，手机通知可能不稳定，推荐用 bot/小号 token。
 - 真正 APNs 推送必须使用你的 Apple Developer Team、APNs key、真机和匹配 Bundle ID 才能验证。
 - Relay 当前使用内存队列，适合个人原型；长期公网运行建议加持久化、限流和日志轮转。
 - Codex 审批请求、手动输入请求会作为事件出现，但还没有做成手机上的交互式审批。

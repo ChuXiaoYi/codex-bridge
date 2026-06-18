@@ -16,7 +16,7 @@
 2. 在 repo 里建一个 label：`codex-remote`。
 3. 再建一个完成 label：`codex-done`。连接器会在 Codex 完成后给 issue 加这个 label。
 4. 创建 fine-grained personal access token，只给这个 repo 的 Issues 读写权限。
-5. 推荐用第二个 GitHub 小号或 bot 账号创建 token，并把它加为 private repo collaborator。这样 bot 评论完成结果时，GitHub Mobile 更容易给你的主账号发通知。
+5. 推荐用第二个 GitHub 小号或 bot 账号创建 token，并把它加为 private repo collaborator。这样 bot 评论完成结果时，GitHub Mobile 更容易给你的主账号发通知；如果用主账号自己的 token 评论/mention/assign 自己，通知可能不会稳定弹出。
 
 GitHub 官方文档：
 
@@ -88,6 +88,16 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
 ```
 
 这个脚本会创建一个临时 label 和测试 issue，只让临时连接器处理这一个测试任务；等 Codex 完成评论后自动关闭测试 issue 并删除临时 label。
+
+通知可靠性验证：
+
+1. iPhone 上安装 GitHub Mobile，登录你的主账号。
+2. 在 GitHub Mobile 里确认这个 private repo 的通知没有被静音。
+3. 家里 Mac 的 token 最好来自 bot/小号，`GITHUB_NOTIFY_USERNAME` 和 `GITHUB_NOTIFY_ASSIGNEES` 填你的主账号。
+4. 锁屏 iPhone 或戴上 Watch，运行上面的真实端到端验证。
+5. 看到 GitHub Mobile 的完成评论/mention/assign 通知后，这条无服务器通知链路才算真的打通。
+
+如果 `doctor` 提示 token actor 和 notify target 是同一个账号，任务执行仍然可用，但“离家及时收到完成通知”不够可靠；换成 bot/小号 token 后再测一次。
 
 总诊断：
 
