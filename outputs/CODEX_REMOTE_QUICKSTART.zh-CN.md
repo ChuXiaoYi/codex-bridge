@@ -124,6 +124,15 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
 
 `--ready` 会通过已安装的 Home Mac 自启服务跑真实 GitHub 烟测，构建 iPhone/watchOS target，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果卡在自启服务，先安装/加载 Home Mac 服务；如果卡在 GitHub 自通知，换 bot/小号 token 后再跑。
 
+只测手机/手表通知：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/test-device-notification.sh
+```
+
+这条命令会创建一个临时 GitHub issue，等家里 Mac 上的自启服务跑完 Codex 后回写完成评论、打 `codex-done` 并分配/mention 主账号。看到 GitHub Mobile 在 iPhone 或 Apple Watch 上弹出后，通知链路才算设备侧确认完成。
+
 看家里 Mac 服务状态：
 
 ```bash

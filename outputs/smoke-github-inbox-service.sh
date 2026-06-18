@@ -4,6 +4,7 @@ set -euo pipefail
 OUTPUT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${CODEX_REMOTE_ENV_FILE:-$HOME/.codex-remote-home-mac.env}"
 TIMEOUT_SECONDS="${CODEX_REMOTE_SERVICE_SMOKE_TIMEOUT_SECONDS:-240}"
+SMOKE_TITLE="${CODEX_REMOTE_SERVICE_SMOKE_TITLE:-Codex Remote service smoke}"
 SMOKE_TEXT="${CODEX_REMOTE_SERVICE_SMOKE_TEXT:-Reply exactly: CODEX_REMOTE_SERVICE_OK}"
 EXPECTED_TEXT="${CODEX_REMOTE_SERVICE_SMOKE_EXPECTED:-CODEX_REMOTE_SERVICE_OK}"
 ISSUE_NUMBER=""
@@ -17,6 +18,11 @@ Runs a real end-to-end smoke through the installed Home Mac service:
   private GitHub issue with GITHUB_TASK_LABEL -> LaunchAgent service -> Codex -> GitHub completion comment.
 
 The script closes the smoke issue when the test finishes.
+
+Optional env:
+  CODEX_REMOTE_SERVICE_SMOKE_TITLE
+  CODEX_REMOTE_SERVICE_SMOKE_TEXT
+  CODEX_REMOTE_SERVICE_SMOKE_EXPECTED
 EOF
 }
 
@@ -170,7 +176,7 @@ if ! curl -fsS "${BRIDGE_URL%/}/health" >/dev/null; then
 fi
 
 echo "Creating service smoke issue with label ${TASK_LABEL}..."
-ISSUE_BODY="$(node -e 'console.log(JSON.stringify({title: "Codex Remote service smoke", body: process.argv[1], labels: [process.argv[2]]}))' "$SMOKE_TEXT" "$TASK_LABEL")"
+ISSUE_BODY="$(node -e 'console.log(JSON.stringify({title: process.argv[1], body: process.argv[2], labels: [process.argv[3]]}))' "$SMOKE_TITLE" "$SMOKE_TEXT" "$TASK_LABEL")"
 CODE="$(github_request POST "${BASE_PATH}/issues" "$TMP_BODY" "$ISSUE_BODY")"
 check_response "$CODE" "$TMP_BODY" "Service smoke issue creation"
 ISSUE_NUMBER="$(json_value "$TMP_BODY" "data.number")"

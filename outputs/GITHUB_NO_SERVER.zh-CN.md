@@ -95,7 +95,13 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
 2. 在 GitHub Mobile 里确认这个 private repo 的通知没有被静音。
 3. 家里 Mac 的 token 最好来自 bot/小号，`GITHUB_NOTIFY_USERNAME` 和 `GITHUB_NOTIFY_ASSIGNEES` 填你的主账号。
 4. 主账号必须是这个 private repo 的 collaborator，否则 GitHub Mobile 不能可靠接收 private repo 的 mention 通知；如果设置了 `GITHUB_NOTIFY_ASSIGNEES`，主账号还必须是可分配 assignee。
-5. 锁屏 iPhone 或戴上 Watch，运行上面的真实端到端验证。
+5. 锁屏 iPhone 或戴上 Watch，运行设备通知自测：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/test-device-notification.sh
+```
+
 6. 看到 GitHub Mobile 的完成评论/mention/assign 通知后，这条无服务器通知链路才算真的打通。
 
 给主账号开 private repo 访问权限：
@@ -142,6 +148,15 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
 ```
 
 `--ready` 会通过已安装的 Home Mac 自启服务跑真实 GitHub 端到端烟测，构建 iPhone/watchOS target，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果提示 Home Mac 服务没装或没运行，说明这台 Mac 还不会自动盯信箱；如果提示 token actor 和通知目标相同，说明手机完成通知还不够可靠。
+
+只测 iPhone/Watch 是否能收到 GitHub Mobile 完成通知：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/test-device-notification.sh
+```
+
+它会创建一个标题为 `Codex Remote device notification test` 的临时 issue，通过已安装的 Home Mac 服务执行；服务端完成后自动关闭测试 issue。真正的最后一步是你在 iPhone 或 Apple Watch 上看到 GitHub Mobile 通知。
 
 安装开机自启：
 
