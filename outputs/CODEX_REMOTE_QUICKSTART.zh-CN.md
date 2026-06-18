@@ -114,6 +114,15 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
   outputs/doctor-remote-office.sh --real-smoke
 ```
 
+离家前硬验收：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/doctor-remote-office.sh --ready
+```
+
+`--ready` 会跑真实 GitHub 烟测、iPhone/watchOS 构建，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果卡在自启服务，先安装/加载 Home Mac 服务；如果卡在 GitHub 自通知，换 bot/小号 token 后再跑。
+
 看家里 Mac 服务状态：
 
 ```bash

@@ -5,13 +5,15 @@ OUTPUT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${CODEX_REMOTE_ENV_FILE:-$HOME/.codex-remote-home-mac.env}"
 RUN_REAL_SMOKE=0
 RUN_APP_BUILDS=0
+STRICT=0
 FAILURES=0
 WARNINGS=0
 
 usage() {
   cat <<'EOF'
 Usage:
-  doctor-remote-office.sh [--env FILE] [--real-smoke] [--build-apps]
+  doctor-remote-office.sh [--env FILE] [--real-smoke] [--build-apps] [--strict]
+  doctor-remote-office.sh [--env FILE] --ready
 
 Checks the Codex Remote Office setup without installing background services.
 
@@ -19,6 +21,8 @@ Options:
   --env FILE     Home Mac env file. Defaults to ~/.codex-remote-home-mac.env
   --real-smoke   Run the real GitHub inbox smoke that creates and closes a test issue
   --build-apps   Build the iPhone and watchOS targets with CODE_SIGNING_ALLOWED=NO
+  --strict       Exit non-zero when any warnings remain
+  --ready        Full readiness gate: --real-smoke --build-apps --strict
   -h, --help    Show this help
 EOF
 }
@@ -35,6 +39,16 @@ while [[ $# -gt 0 ]]; do
       ;;
     --build-apps)
       RUN_APP_BUILDS=1
+      shift
+      ;;
+    --strict)
+      STRICT=1
+      shift
+      ;;
+    --ready)
+      RUN_REAL_SMOKE=1
+      RUN_APP_BUILDS=1
+      STRICT=1
       shift
       ;;
     -h|--help)
@@ -353,16 +367,19 @@ check_real_smoke
 check_app_builds
 
 section "Summary"
+EXIT_STATUS=0
 if [[ "$FAILURES" == "0" ]]; then
   if [[ "$WARNINGS" == "0" ]]; then
     pass "Remote office checks passed"
+  elif [[ "$STRICT" == "1" ]]; then
+    printf 'FAIL Remote office strict readiness failed with %s warning(s)\n' "$WARNINGS"
+    EXIT_STATUS=1
   else
     printf 'WARN Remote office checks passed with %s warning(s)\n' "$WARNINGS"
   fi
 else
   printf 'FAIL Remote office checks failed with %s failure(s) and %s warning(s)\n' "$FAILURES" "$WARNINGS"
+  EXIT_STATUS=1
 fi
 
-if [[ "$FAILURES" != "0" ]]; then
-  exit 1
-fi
+exit "$EXIT_STATUS"

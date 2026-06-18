@@ -24,6 +24,10 @@ const server = http.createServer(async (req, res) => {
     json(res, 200, { full_name: "test/codex", private: repoPrivate, has_issues: true });
     return;
   }
+  if (req.method === "GET" && url.pathname === "/user") {
+    json(res, 200, { login: "codex-bot" });
+    return;
+  }
   const labelMatch = url.pathname.match(/^\/repos\/test\/codex\/labels\/([^/]+)$/);
   if (req.method === "GET" && labelMatch) {
     const label = decodeURIComponent(labelMatch[1]);

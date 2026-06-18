@@ -106,6 +106,15 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
   outputs/doctor-remote-office.sh
 ```
 
+离家前硬验收：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/doctor-remote-office.sh --ready
+```
+
+`--ready` 会跑真实 GitHub 端到端烟测、iPhone/watchOS 构建，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果提示 Home Mac 服务没装或没运行，说明这台 Mac 还不会自动盯信箱；如果提示 token actor 和通知目标相同，说明手机完成通知还不够可靠。
+
 安装开机自启：
 
 ```bash
