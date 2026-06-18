@@ -89,6 +89,13 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
 
 这个脚本会创建一个临时 label 和测试 issue，只让临时连接器处理这一个测试任务；等 Codex 完成评论后自动关闭测试 issue 并删除临时 label。
 
+总诊断：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/doctor-remote-office.sh
+```
+
 安装开机自启：
 
 ```bash

@@ -98,6 +98,20 @@ outputs/home-mac-bridge/install-launch-agent.sh
 
 ## 常用命令
 
+总诊断：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/doctor-remote-office.sh
+```
+
+带真实 GitHub 端到端烟测的总诊断：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/doctor-remote-office.sh --real-smoke
+```
+
 看家里 Mac 服务状态：
 
 ```bash
