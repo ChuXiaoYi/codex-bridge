@@ -73,6 +73,14 @@ function waitFor(predicate, label, timeoutMs = 12000) {
 
 const githubServer = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
+  if (req.method === "GET" && url.pathname === "/repos/test/codex") {
+    json(res, 200, { private: true, has_issues: true });
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/repos/test/codex/labels/codex-remote") {
+    json(res, 200, { name: "codex-remote" });
+    return;
+  }
   if (req.method === "GET" && url.pathname === "/repos/test/codex/issues") {
     json(res, 200, issues);
     return;

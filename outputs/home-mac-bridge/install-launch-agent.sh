@@ -28,8 +28,15 @@ START_SCRIPT="$SCRIPT_DIR/start-home-mac.sh"
 
 if [[ "$BACKEND" == "github" ]]; then
   START_SCRIPT="$SCRIPT_DIR/start-home-mac-github.sh"
-  if [[ -z "${GITHUB_TOKEN:-}" || "$GITHUB_TOKEN" == "github_pat_replace_me" ]]; then
-    echo "Set GITHUB_TOKEN in $ENV_FILE before installing the LaunchAgent." >&2
+  if [[ -z "${GITHUB_TOKEN:-}" && -z "${GITHUB_TOKEN_COMMAND:-}" ]] \
+    && ! command -v gh >/dev/null 2>&1 \
+    && [[ ! -x /opt/homebrew/bin/gh ]] \
+    && [[ ! -x /usr/local/bin/gh ]]; then
+    echo "Set GITHUB_TOKEN or GITHUB_TOKEN_COMMAND in $ENV_FILE, or install/login GitHub CLI before installing the LaunchAgent." >&2
+    exit 1
+  fi
+  if [[ "${GITHUB_TOKEN:-}" == "github_pat_replace_me" ]]; then
+    echo "Replace the placeholder GITHUB_TOKEN in $ENV_FILE before installing the LaunchAgent." >&2
     exit 1
   fi
   if [[ -z "${GITHUB_OWNER:-}" || -z "${GITHUB_REPO:-}" ]]; then

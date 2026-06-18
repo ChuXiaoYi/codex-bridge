@@ -16,6 +16,7 @@ function parseArgs(argv) {
     repo: process.env.GITHUB_REPO || "",
     taskLabel: process.env.GITHUB_TASK_LABEL || "codex-remote",
     notifyUsername: process.env.GITHUB_NOTIFY_USERNAME || "",
+    allowPublicRepo: process.env.GITHUB_ALLOW_PUBLIC_REPO === "1",
     pollMs: Number(process.env.GITHUB_POLL_MS || DEFAULT_POLL_MS),
     bridgeUrl: process.env.BRIDGE_URL || DEFAULT_BRIDGE_URL,
     bridgeToken: process.env.BRIDGE_TOKEN || "",
@@ -60,6 +61,7 @@ Environment:
   GITHUB_REPO        Repository name
   GITHUB_TASK_LABEL  Issue label to poll, defaults to codex-remote
   GITHUB_NOTIFY_USERNAME  Optional username to mention on completion comments
+  GITHUB_ALLOW_PUBLIC_REPO=1 allows using a public repo as the task inbox
   GITHUB_POLL_MS     Poll interval, defaults to 15000
   BRIDGE_URL         Local Home Mac Bridge URL
   BRIDGE_TOKEN       Optional bearer token for local Bridge
@@ -137,6 +139,7 @@ class GitHubIssuesClient {
 
   async start() {
     console.log(`Connecting GitHub ${this.options.owner}/${this.options.repo} to local bridge ${this.options.bridgeUrl}`);
+    await this.validateRepository();
     await Promise.all([
       this.pollLoop(),
       this.forwardEventsLoop(),
@@ -165,6 +168,24 @@ class GitHubIssuesClient {
 
     if (response.status === 204) return null;
     return parseResponseBody(response);
+  }
+
+  async validateRepository() {
+    const repo = await this.github(this.repoPath(""));
+    if (repo.private !== true && !this.options.allowPublicRepo) {
+      throw new Error(
+        "GitHub task inbox repository is public. Make it private, or set GITHUB_ALLOW_PUBLIC_REPO=1 if you intentionally want public tasks.",
+      );
+    }
+    if (repo.has_issues === false) {
+      throw new Error("GitHub Issues are disabled for this repository.");
+    }
+
+    try {
+      await this.github(this.repoPath(`/labels/${encodeURIComponent(this.options.taskLabel)}`));
+    } catch (error) {
+      throw new Error(`GitHub label '${this.options.taskLabel}' is missing or not readable: ${error.message}`);
+    }
   }
 
   async bridge(path, init = {}) {

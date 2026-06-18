@@ -12,7 +12,7 @@
 
 ## 准备 GitHub
 
-1. 新建一个 private repo，例如 `codex-remote`。
+1. 新建一个 private repo，例如 `codex-remote`。不要用 public repo 放真实任务内容。
 2. 在 repo 里建一个 label：`codex-remote`。
 3. 创建 fine-grained personal access token，只给这个 repo 的 Issues 读写权限。
 4. 推荐用第二个 GitHub 小号或 bot 账号创建 token，并把它加为 private repo collaborator。这样 bot 评论完成结果时，GitHub Mobile 更容易给你的主账号发通知。
@@ -36,11 +36,22 @@ GitHub 模式最少需要：
 
 ```bash
 CODEX_REMOTE_BACKEND=github
-GITHUB_TOKEN=github_pat_你的token
 GITHUB_OWNER=你的用户名或组织名
 GITHUB_REPO=codex-remote
 GITHUB_TASK_LABEL=codex-remote
 GITHUB_NOTIFY_USERNAME=你的主账号用户名
+```
+
+如果家里 Mac 已经安装并登录 GitHub CLI，可以不写 `GITHUB_TOKEN`，连接器会临时调用 `gh auth token`。如果你不用 GitHub CLI，再写：
+
+```bash
+GITHUB_TOKEN=github_pat_你的token
+```
+
+连接器默认拒绝 public repo，避免任务内容泄露。只有你明确接受公开任务内容时，才设置：
+
+```bash
+GITHUB_ALLOW_PUBLIC_REPO=1
 ```
 
 手动试跑：
