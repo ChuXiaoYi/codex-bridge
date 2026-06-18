@@ -1,0 +1,23 @@
+services:
+  codex-remote-relay:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8788:8788"
+    environment:
+      RELAY_CLIENT_TOKEN: ${RELAY_CLIENT_TOKEN:?set RELAY_CLIENT_TOKEN}
+      RELAY_BRIDGE_TOKEN: ${RELAY_BRIDGE_TOKEN:?set RELAY_BRIDGE_TOKEN}
+      RELAY_HOST: 0.0.0.0
+      RELAY_PORT: 8788
+      APNS_KEY_PATH: ${APNS_KEY_PATH:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_TOPIC: ${APNS_TOPIC:-}
+      APNS_ENV: ${APNS_ENV:-sandbox}
+    volumes:
+      - ${APNS_KEY_DIR:-./secrets}:/run/secrets/codex-remote:ro
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8788/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

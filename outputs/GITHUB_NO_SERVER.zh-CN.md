@@ -1,0 +1,174 @@
+# 不买服务器：GitHub Issues 信箱模式
+
+这个模式不用阿里云、不用域名、不用公网服务器。GitHub 私有仓库充当任务信箱：
+
+- iPhone/Watch 写入 GitHub issue 或 comment，可以用 CodexRemote app，也可以用 GitHub Mobile/Shortcuts。
+- 家里 Mac 轮询这个 private repo。
+- 家里 Mac 把任务转给本机 Codex。
+- Codex 完成后，家里 Mac 评论回同一个 issue。
+- 通知借 GitHub Mobile 的 push 或邮件。
+
+它比公网 Relay 便宜省心，但不是实时服务器：通常会有几秒到几十秒延迟；自家 CodexRemote app 的 APNs 通知也不会在这个模式里使用。
+
+## 准备 GitHub
+
+1. 新建一个 private repo，例如 `codex-remote`。
+2. 在 repo 里建一个 label：`codex-remote`。
+3. 创建 fine-grained personal access token，只给这个 repo 的 Issues 读写权限。
+4. 推荐用第二个 GitHub 小号或 bot 账号创建 token，并把它加为 private repo collaborator。这样 bot 评论完成结果时，GitHub Mobile 更容易给你的主账号发通知。
+
+GitHub 官方文档：
+
+- Issues REST API: https://docs.github.com/en/rest/issues/issues
+- Issue Comments REST API: https://docs.github.com/en/rest/issues/comments
+- Fine-grained tokens: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+
+## 家里 Mac 配置
+
+创建配置文件：
+
+```bash
+cp outputs/home-mac-bridge/home-mac.env.example ~/.codex-remote-home-mac.env
+nano ~/.codex-remote-home-mac.env
+```
+
+GitHub 模式最少需要：
+
+```bash
+CODEX_REMOTE_BACKEND=github
+GITHUB_TOKEN=github_pat_你的token
+GITHUB_OWNER=你的用户名或组织名
+GITHUB_REPO=codex-remote
+GITHUB_TASK_LABEL=codex-remote
+GITHUB_NOTIFY_USERNAME=你的主账号用户名
+```
+
+手动试跑：
+
+```bash
+set -a
+source ~/.codex-remote-home-mac.env
+set +a
+outputs/home-mac-bridge/start-home-mac-github.sh
+```
+
+安装开机自启：
+
+```bash
+outputs/home-mac-bridge/install-launch-agent.sh
+```
+
+看状态：
+
+```bash
+outputs/home-mac-bridge/status-launch-agent.sh
+```
+
+## iPhone 使用
+
+### CodexRemote app
+
+1. 打开 CodexRemote。
+2. Backend 选 `GitHub`。
+3. 填 `Owner`、`Repo`、`Label` 和 GitHub token。
+4. `Send Task` 会创建 GitHub issue。
+5. 打开 issue 后输入新指令，`Comment` 会追加 GitHub comment。
+
+### GitHub Mobile
+
+装 GitHub Mobile，登录你的主账号。
+
+发新任务：
+
+1. 在 private repo 里创建 issue。
+2. 标题随便写，比如 `让 Codex 修改 README`。
+3. 加 label：`codex-remote`。
+4. issue body 写任务内容。
+
+追加指令：
+
+1. 打开同一个 issue。
+2. 直接评论你的新指令。
+3. 家里 Mac 会把评论转给同一个 Codex thread。
+
+查看结果：
+
+- 连接器会在 issue 里评论 `Started Codex thread ...`。
+- Codex 完成后会评论完成摘要。
+- 在任意 issue 评论 `/codex list`，连接器会回复最近 Codex threads。
+
+## Apple Watch 语音发任务
+
+### CodexRemote Watch app
+
+1. Backend 选 `GitHub`。
+2. 填 `Owner`、`Repo`、`Label` 和 token。
+3. 在 `Task` 输入框用系统语音输入。
+4. `Send to Codex` 会创建 GitHub issue。
+5. 打开 issue 后继续用语音输入，`Comment` 会追加 GitHub comment。
+
+### Apple Shortcuts
+
+可以用 Apple Shortcuts，不需要自己写 watchOS 网络代码。做一个快捷指令：
+
+1. `Dictate Text` 或 `Ask for Input`。
+2. `Get Contents of URL`。
+3. URL:
+
+```text
+https://api.github.com/repos/GITHUB_OWNER/GITHUB_REPO/issues
+```
+
+4. Method: `POST`
+5. Headers:
+
+```text
+Accept: application/vnd.github+json
+Authorization: Bearer GITHUB_TOKEN
+X-GitHub-Api-Version: 2022-11-28
+Content-Type: application/json
+```
+
+6. Request body:
+
+```json
+{
+  "title": "Watch Codex task",
+  "body": "这里放语音转文字结果",
+  "labels": ["codex-remote"]
+}
+```
+
+把这个快捷指令添加到 Apple Watch，之后抬腕运行，语音转文字就会生成 GitHub issue，家里 Mac 会轮询执行。
+
+## 命令行测试
+
+创建任务 issue：
+
+```bash
+curl -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPO/issues \
+  -d '{"title":"Codex test","body":"Reply exactly: GITHUB_RELAY_OK","labels":["codex-remote"]}'
+```
+
+追加指令：
+
+```bash
+curl -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  -H "X-GitHub-Api-Version: 2022-11-28" \
+  https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPO/issues/ISSUE_NUMBER/comments \
+  -d '{"body":"Continue with this extra instruction"}'
+```
+
+## 取舍
+
+- 优点：不买服务器、不备案、不配 HTTPS、不暴露家里端口。
+- 优点：GitHub Mobile 自带通知、评论和历史记录。
+- 缺点：不是实时链路，轮询有延迟。
+- 缺点：如果连接器用你自己的 token 评论，GitHub 可能不推送自己的评论；推荐 bot/小号 token + `GITHUB_NOTIFY_USERNAME`。
+- 缺点：自家 CodexRemote iPhone/watchOS app 的 APNs 通知不参与这个模式；CodexRemote app 负责读写 GitHub，通知主要靠 GitHub Mobile。
