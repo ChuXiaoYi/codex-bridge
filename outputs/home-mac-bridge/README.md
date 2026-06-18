@@ -40,11 +40,18 @@ No-server GitHub Issues connector:
 
 ```bash
 CODEX_REMOTE_BACKEND=github \
-GITHUB_TOKEN=github_pat_replace_me \
 GITHUB_OWNER=your-user \
 GITHUB_REPO=codex-remote \
 ./start-home-mac-github.sh
 ```
+
+Preflight the GitHub inbox before installing the LaunchAgent:
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env ./doctor-github-inbox.sh
+```
+
+The checker verifies GitHub auth, repository privacy, Issues, the task label, and the local Codex Desktop CLI path. It refuses public repositories unless `GITHUB_ALLOW_PUBLIC_REPO=1` is explicitly set.
 
 Install as a login-time LaunchAgent:
 

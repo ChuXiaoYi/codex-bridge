@@ -54,6 +54,20 @@ GITHUB_TOKEN=github_pat_你的token
 GITHUB_ALLOW_PUBLIC_REPO=1
 ```
 
+先做一次预检：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/home-mac-bridge/doctor-github-inbox.sh
+```
+
+它会检查 GitHub 登录/token、repo 是否 private、Issues 是否开启、`codex-remote` label 是否存在，以及这台 Mac 上能否找到 Codex Desktop CLI。缺 label 时可以让它创建：
+
+```bash
+CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
+  outputs/home-mac-bridge/doctor-github-inbox.sh --create-label
+```
+
 手动试跑：
 
 ```bash

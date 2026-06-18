@@ -20,8 +20,9 @@
 1. 建一个 GitHub private repo 和 `codex-remote` label。
 2. 创建只允许 Issues 读写的 fine-grained token。
 3. 家里 Mac 设置 `CODEX_REMOTE_BACKEND=github`、`GITHUB_TOKEN`、`GITHUB_OWNER`、`GITHUB_REPO`。
-4. 用 `outputs/home-mac-bridge/install-launch-agent.sh` 开机自启。
-5. iPhone/Watch 可以直接在 CodexRemote app 里选择 GitHub backend，也可以用 GitHub Mobile/Shortcuts。
+4. 先跑 `outputs/home-mac-bridge/doctor-github-inbox.sh` 预检，确认 repo 是 private、Issues 和 label 都可用。
+5. 用 `outputs/home-mac-bridge/install-launch-agent.sh` 开机自启。
+6. iPhone/Watch 可以直接在 CodexRemote app 里选择 GitHub backend，也可以用 GitHub Mobile/Shortcuts。
 
 这个模式不需要买服务器，但系统通知靠 GitHub Mobile，不是自家 APNs。
 

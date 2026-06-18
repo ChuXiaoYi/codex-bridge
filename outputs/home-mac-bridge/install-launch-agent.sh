@@ -43,6 +43,7 @@ if [[ "$BACKEND" == "github" ]]; then
     echo "Set GITHUB_OWNER and GITHUB_REPO in $ENV_FILE before installing the LaunchAgent." >&2
     exit 1
   fi
+  CODEX_REMOTE_ENV_FILE="$ENV_FILE" "$SCRIPT_DIR/doctor-github-inbox.sh"
 else
   if [[ -z "${RELAY_URL:-}" || "$RELAY_URL" == "https://your-relay.example.com" ]]; then
     echo "Set RELAY_URL in $ENV_FILE before installing the LaunchAgent." >&2
