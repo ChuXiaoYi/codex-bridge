@@ -22,7 +22,9 @@
 3. 家里 Mac 设置 `CODEX_REMOTE_BACKEND=github`、`GITHUB_TOKEN`、`GITHUB_OWNER`、`GITHUB_REPO`。
 4. 先跑 `outputs/home-mac-bridge/doctor-github-inbox.sh` 预检，确认 repo 是 private、Issues 和 label 都可用。
 5. 用 `outputs/home-mac-bridge/install-launch-agent.sh` 开机自启。
-6. iPhone/Watch 可以直接在 CodexRemote app 里选择 GitHub backend，也可以用 GitHub Mobile/Shortcuts。
+6. iPhone 上在 CodexRemote 里选择 GitHub backend，填 owner/repo/label/token 后点 `Sync Settings to Watch`。
+7. Watch app 可以直接收 iPhone 同步的配置；没收到时点 `Request iPhone Settings`，然后用系统语音输入发任务。
+8. 也可以不用自家 app，直接用 GitHub Mobile/Shortcuts。
 
 这个模式不需要买服务器，但系统通知靠 GitHub Mobile，不是自家 APNs。
 
@@ -82,6 +84,7 @@ outputs/home-mac-bridge/install-launch-agent.sh
 - iPhone thread 详情页 `Send / Steer` 能对空闲线程续跑，对活跃线程追加指令。
 - Watch 能刷新线程列表、打开线程详情并追加指令。
 - Watch 语音输入后能发送新任务或给已有线程追加指令。
+- iPhone `Sync Settings to Watch` 后，Watch 不需要手输 owner/repo/token 就能使用同一套 GitHub 或 Relay 配置。
 - Codex 完成时，Relay `/events` 里出现 `notification_ready` 或 `notification_sent`。
 - 配好 APNs 并用真机签名安装后，iPhone/Watch 能收到系统完成通知。
 - 家里 Mac 重启或重新登录后，`outputs/home-mac-bridge/status-launch-agent.sh` 显示服务已加载。

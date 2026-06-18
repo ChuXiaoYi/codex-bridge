@@ -1,4 +1,5 @@
 import Foundation
+@preconcurrency import WatchConnectivity
 
 enum RemoteBackend: String, CaseIterable, Identifiable {
     case relay
@@ -17,7 +18,7 @@ enum RemoteBackend: String, CaseIterable, Identifiable {
 }
 
 @MainActor
-final class WatchRemoteStore: ObservableObject {
+final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
     @Published var backendRaw: String {
         didSet { defaults.set(backendRaw, forKey: Keys.backendRaw) }
     }
@@ -54,6 +55,7 @@ final class WatchRemoteStore: ObservableObject {
     @Published var status = "Ready"
     @Published var isSending = false
     @Published var isLoadingThreads = false
+    @Published var phoneSyncStatus = "Open iPhone app to sync settings"
     @Published private(set) var threads: [WatchCodexThread] = []
 
     private let defaults: UserDefaults
@@ -68,6 +70,8 @@ final class WatchRemoteStore: ObservableObject {
         self.githubRepo = defaults.string(forKey: Keys.githubRepo) ?? ""
         self.githubToken = defaults.string(forKey: Keys.githubToken) ?? ""
         self.githubLabel = defaults.string(forKey: Keys.githubLabel) ?? "codex-remote"
+        super.init()
+        configurePhoneSync()
     }
 
     var backend: RemoteBackend {
@@ -82,7 +86,32 @@ final class WatchRemoteStore: ObservableObject {
             return normalizedGitHubAPIURL != nil
                 && !githubOwner.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && !githubRepo.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !githubToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
+    }
+
+    func requestSettingsFromPhone() {
+        guard WCSession.isSupported() else {
+            phoneSyncStatus = "iPhone sync unavailable"
+            return
+        }
+
+        let session = WCSession.default
+        guard session.activationState == .activated else {
+            phoneSyncStatus = "iPhone sync pending"
+            return
+        }
+        guard session.isReachable else {
+            phoneSyncStatus = "Open iPhone app"
+            return
+        }
+
+        session.sendMessage(["command": "syncSettings"], replyHandler: nil) { [weak self] error in
+            Task { @MainActor in
+                self?.phoneSyncStatus = error.localizedDescription
+            }
+        }
+        phoneSyncStatus = "Requested settings"
     }
 
     func refreshThreads() async {
@@ -188,6 +217,66 @@ final class WatchRemoteStore: ObservableObject {
                 ? "codex-remote"
                 : githubLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         )
+    }
+
+    private func configurePhoneSync() {
+        guard WCSession.isSupported() else {
+            phoneSyncStatus = "iPhone sync unavailable"
+            return
+        }
+        let session = WCSession.default
+        session.delegate = self
+        session.activate()
+        applyPhoneSettings(from: session.receivedApplicationContext, source: "Saved iPhone settings")
+    }
+
+    private func applyPhoneSettings(from payload: [String: Any], source: String) {
+        let strings = payload.compactMapValues { $0 as? String }
+        applyPhoneSettings(from: strings, source: source)
+    }
+
+    private func applyPhoneSettings(from payload: [String: String], source: String) {
+        guard payload["schemaVersion"] == "1" else { return }
+        backendRaw = payload["backendRaw"] ?? backendRaw
+        relayURL = payload["relayURL"] ?? relayURL
+        clientToken = payload["clientToken"] ?? clientToken
+        githubAPIURL = payload["githubAPIURL"] ?? githubAPIURL
+        githubOwner = payload["githubOwner"] ?? githubOwner
+        githubRepo = payload["githubRepo"] ?? githubRepo
+        githubToken = payload["githubToken"] ?? githubToken
+        githubLabel = payload["githubLabel"] ?? githubLabel
+        phoneSyncStatus = source
+    }
+
+    nonisolated func session(
+        _ session: WCSession,
+        activationDidCompleteWith activationState: WCSessionActivationState,
+        error: Error?
+    ) {
+        let errorMessage = error?.localizedDescription
+        Task { @MainActor [weak self] in
+            if let errorMessage {
+                self?.phoneSyncStatus = errorMessage
+            } else if activationState == .activated {
+                self?.phoneSyncStatus = "iPhone sync ready"
+            } else {
+                self?.phoneSyncStatus = "iPhone sync inactive"
+            }
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        let strings = applicationContext.compactMapValues { $0 as? String }
+        Task { @MainActor [weak self] in
+            self?.applyPhoneSettings(from: strings, source: "Settings synced")
+        }
+    }
+
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        let strings = message.compactMapValues { $0 as? String }
+        Task { @MainActor [weak self] in
+            self?.applyPhoneSettings(from: strings, source: "Settings synced")
+        }
     }
 
     private enum Keys {

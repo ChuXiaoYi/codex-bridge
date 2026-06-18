@@ -27,6 +27,14 @@ struct ContentView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("Watch") {
+                    Button("Sync Settings to Watch") {
+                        settings.syncWatchSettings()
+                    }
+                    Text(settings.watchSyncStatus)
+                        .foregroundStyle(.secondary)
+                }
+
                 if settings.backend == .relay {
                     Section("Relay") {
                         TextField("Relay URL", text: $settings.relayURL)

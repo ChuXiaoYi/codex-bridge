@@ -12,6 +12,11 @@ struct WatchContentView: View {
                             Text(backend.label).tag(backend.rawValue)
                         }
                     }
+                    Button("Request iPhone Settings") {
+                        store.requestSettingsFromPhone()
+                    }
+                    Text(store.phoneSyncStatus)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Task") {
