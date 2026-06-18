@@ -113,7 +113,8 @@ final class ThreadsStore: ObservableObject {
             label: settings.githubLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "codex-remote"
                 : settings.githubLabel.trimmingCharacters(in: .whitespacesAndNewlines),
-            doneLabel: settings.githubDoneLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+            doneLabel: settings.githubDoneLabel.trimmingCharacters(in: .whitespacesAndNewlines),
+            includeDone: settings.githubShowDone
         )
     }
 }

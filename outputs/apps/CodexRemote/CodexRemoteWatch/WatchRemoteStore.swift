@@ -55,6 +55,10 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
         didSet { defaults.set(githubDoneLabel, forKey: Keys.githubDoneLabel) }
     }
 
+    @Published var githubShowDone: Bool {
+        didSet { defaults.set(githubShowDone, forKey: Keys.githubShowDone) }
+    }
+
     @Published var taskText = ""
     @Published var status = "Ready"
     @Published var isSending = false
@@ -75,6 +79,7 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
         self.githubToken = defaults.string(forKey: Keys.githubToken) ?? ""
         self.githubLabel = defaults.string(forKey: Keys.githubLabel) ?? "codex-remote"
         self.githubDoneLabel = defaults.string(forKey: Keys.githubDoneLabel) ?? "codex-done"
+        self.githubShowDone = defaults.bool(forKey: Keys.githubShowDone)
         super.init()
         configurePhoneSync()
     }
@@ -221,7 +226,8 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
             label: githubLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? "codex-remote"
                 : githubLabel.trimmingCharacters(in: .whitespacesAndNewlines),
-            doneLabel: githubDoneLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+            doneLabel: githubDoneLabel.trimmingCharacters(in: .whitespacesAndNewlines),
+            includeDone: githubShowDone
         )
     }
 
@@ -252,6 +258,7 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
         githubToken = payload["githubToken"] ?? githubToken
         githubLabel = payload["githubLabel"] ?? githubLabel
         githubDoneLabel = payload["githubDoneLabel"] ?? githubDoneLabel
+        githubShowDone = payload["githubShowDone"] == "1"
         phoneSyncStatus = source
     }
 
@@ -296,6 +303,7 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
         static let githubToken = "githubToken"
         static let githubLabel = "githubLabel"
         static let githubDoneLabel = "githubDoneLabel"
+        static let githubShowDone = "githubShowDone"
     }
 }
 
@@ -417,6 +425,7 @@ struct WatchGitHubAPI {
     var token: String
     var label: String
     var doneLabel: String
+    var includeDone: Bool
 
     func listIssues(limit: Int = 8) async throws -> [WatchCodexThread] {
         guard !owner.isEmpty, !repo.isEmpty else {
@@ -433,7 +442,7 @@ struct WatchGitHubAPI {
         let issues: [WatchGitHubIssue] = try await request(components?.url ?? repoURL("issues"))
         return issues
             .filter { $0.pullRequest == nil }
-            .filter { !$0.hasLabel(doneLabel) }
+            .filter { includeDone || !$0.hasLabel(doneLabel) }
             .map { $0.codexThread }
     }
 

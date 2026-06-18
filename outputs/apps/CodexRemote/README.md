@@ -11,12 +11,12 @@ Minimal iOS and watchOS clients for the Codex remote office flow.
 - iPhone app can request notification permission, register with APNs, and post the device token to the Relay.
 - iPhone app can stream foreground Relay events, including completion notification readiness.
 - iPhone app can use GitHub Issues as a no-server backend for creating tasks and adding comments.
-- iPhone app filters completed GitHub issues marked with the configured done label.
+- iPhone app filters completed GitHub issues marked with the configured done label by default, with a `Show Done` toggle for history.
 - iPhone app can sync Relay/GitHub settings to the Watch app with WatchConnectivity.
 - Watch app can type or dictate a new task and send it to the Relay.
 - Watch app can refresh recent threads, open a thread, and type or dictate an additional instruction.
 - Watch app can use the same GitHub Issues backend for issue creation and comments.
-- Watch app filters completed GitHub issues marked with the configured done label.
+- Watch app filters completed GitHub issues marked with the configured done label by default, with a `Show Done` toggle for history.
 - Watch app can receive settings from iPhone or request them when the iPhone app is open.
 
 The Watch text fields use the system watchOS text input experience, which includes dictation on real devices when available.

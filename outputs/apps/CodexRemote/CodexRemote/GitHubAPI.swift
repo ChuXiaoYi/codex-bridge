@@ -7,6 +7,7 @@ struct GitHubAPI {
     var token: String
     var label: String
     var doneLabel: String
+    var includeDone: Bool
     var session: URLSession = .shared
 
     func listIssues(limit: Int = 20) async throws -> [CodexThread] {
@@ -25,7 +26,7 @@ struct GitHubAPI {
         let issues: [GitHubIssue] = try await request(components?.url ?? repoURL("issues"))
         return issues
             .filter { $0.pullRequest == nil }
-            .filter { !$0.hasLabel(doneLabel) }
+            .filter { includeDone || !$0.hasLabel(doneLabel) }
             .map { $0.codexThread }
     }
 

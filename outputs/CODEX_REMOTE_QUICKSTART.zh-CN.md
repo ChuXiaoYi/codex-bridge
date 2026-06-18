@@ -85,7 +85,7 @@ outputs/home-mac-bridge/install-launch-agent.sh
 - Watch 能刷新线程列表、打开线程详情并追加指令。
 - Watch 语音输入后能发送新任务或给已有线程追加指令。
 - iPhone `Sync Settings to Watch` 后，Watch 不需要手输 owner/repo/token 就能使用同一套 GitHub 或 Relay 配置。
-- GitHub 模式下，带 `codex-done` 的完成 issue 不再出现在 iPhone/Watch 待处理列表里。
+- GitHub 模式下，带 `codex-done` 的完成 issue 默认不再出现在 iPhone/Watch 待处理列表里；需要回看历史时打开 `Show Done`。
 - Codex 完成时，Relay `/events` 里出现 `notification_ready` 或 `notification_sent`。
 - 配好 APNs 并用真机签名安装后，iPhone/Watch 能收到系统完成通知。
 - 家里 Mac 重启或重新登录后，`outputs/home-mac-bridge/status-launch-agent.sh` 显示服务已加载。
