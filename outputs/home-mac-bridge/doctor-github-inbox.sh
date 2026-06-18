@@ -234,6 +234,29 @@ if [[ -n "$DONE_LABEL" ]]; then
   ensure_label "$DONE_LABEL" "0E8A16" "Codex Remote completed task"
 fi
 
+ensure_user() {
+  local username="$1"
+  CODE="$(github_request GET "/users/$(urlencode "$username")" "$TMP_BODY")"
+  check_response "$CODE" "$TMP_BODY" "GitHub user lookup"
+}
+
+ensure_collaborator() {
+  local username="$1"
+  CODE="$(github_request GET "${BASE_PATH}/collaborators/$(urlencode "$username")" "$TMP_BODY")"
+  if [[ "$CODE" == "204" || "$CODE" =~ ^2 ]]; then
+    return
+  fi
+  echo "Notify user '${username}' cannot access ${GITHUB_OWNER}/${GITHUB_REPO}." >&2
+  echo "Add that account as a repository collaborator so GitHub Mobile can receive private repo notifications." >&2
+  exit 1
+}
+
+if [[ -n "${GITHUB_NOTIFY_USERNAME:-}" ]]; then
+  ensure_user "$GITHUB_NOTIFY_USERNAME"
+  ensure_collaborator "$GITHUB_NOTIFY_USERNAME"
+  echo "Notify mention target: ${GITHUB_NOTIFY_USERNAME}"
+fi
+
 if [[ -n "${GITHUB_NOTIFY_ASSIGNEES:-}" ]]; then
   IFS=',' read -r -a notify_assignees <<<"$GITHUB_NOTIFY_ASSIGNEES"
   for username in "${notify_assignees[@]}"; do
@@ -241,8 +264,8 @@ if [[ -n "${GITHUB_NOTIFY_ASSIGNEES:-}" ]]; then
     if [[ -z "$username" ]]; then
       continue
     fi
-    CODE="$(github_request GET "/users/$(urlencode "$username")" "$TMP_BODY")"
-    check_response "$CODE" "$TMP_BODY" "Notify assignee lookup"
+    ensure_user "$username"
+    ensure_collaborator "$username"
     CODE="$(github_request GET "${BASE_PATH}/assignees/$(urlencode "$username")" "$TMP_BODY")"
     if [[ "$CODE" == "204" || "$CODE" =~ ^2 ]]; then
       echo "Notify assignee: ${username}"

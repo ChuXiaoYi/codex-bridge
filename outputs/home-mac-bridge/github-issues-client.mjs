@@ -208,8 +208,20 @@ class GitHubIssuesClient {
       }
     }
 
+    if (this.options.notifyUsername) {
+      try {
+        await this.github(this.repoPath(`/collaborators/${encodeURIComponent(this.options.notifyUsername)}`));
+      } catch (error) {
+        throw new Error(
+          `GitHub notify username '${this.options.notifyUsername}' cannot access ` +
+          `${this.options.owner}/${this.options.repo}. Add that account as a repository collaborator.`,
+        );
+      }
+    }
+
     for (const username of this.options.notifyAssignees) {
       try {
+        await this.github(this.repoPath(`/collaborators/${encodeURIComponent(username)}`));
         await this.github(this.repoPath(`/assignees/${encodeURIComponent(username)}`));
       } catch (error) {
         throw new Error(

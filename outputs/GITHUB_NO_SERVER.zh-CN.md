@@ -94,9 +94,22 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
 1. iPhone 上安装 GitHub Mobile，登录你的主账号。
 2. 在 GitHub Mobile 里确认这个 private repo 的通知没有被静音。
 3. 家里 Mac 的 token 最好来自 bot/小号，`GITHUB_NOTIFY_USERNAME` 和 `GITHUB_NOTIFY_ASSIGNEES` 填你的主账号。
-4. 如果设置了 `GITHUB_NOTIFY_ASSIGNEES`，主账号必须是这个 private repo 的 collaborator，否则 GitHub 不允许把完成 issue assign 给主账号。
+4. 主账号必须是这个 private repo 的 collaborator，否则 GitHub Mobile 不能可靠接收 private repo 的 mention 通知；如果设置了 `GITHUB_NOTIFY_ASSIGNEES`，主账号还必须是可分配 assignee。
 5. 锁屏 iPhone 或戴上 Watch，运行上面的真实端到端验证。
 6. 看到 GitHub Mobile 的完成评论/mention/assign 通知后，这条无服务器通知链路才算真的打通。
+
+给主账号开 private repo 访问权限：
+
+- GitHub UI：在小号的 `codex-remote` repo 里打开 `Settings` -> `Collaborators and teams`，邀请主账号 `ChuXiaoYi`，主账号接受邀请。
+- API：如果小号 token 有仓库管理权限，可以运行：
+
+```bash
+gh api -X PUT \
+  repos/chuxiaoyiiiii/codex-remote/collaborators/ChuXiaoYi \
+  -f permission=push
+```
+
+邀请接受后重新跑 `outputs/home-mac-bridge/doctor-github-inbox.sh`，应该看到 `Notify mention target` 和 `Notify assignee` 都通过。
 
 如果 `doctor` 提示 token actor 和 notify target 是同一个账号，任务执行仍然可用，但“离家及时收到完成通知”不够可靠；换成 bot/小号 token 后再测一次。
 
