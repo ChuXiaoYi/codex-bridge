@@ -54,6 +54,21 @@ struct GitHubAPI {
         )
     }
 
+    func listComments(issueNumber: String, limit: Int = 20) async throws -> [GitHubIssueComment] {
+        guard !owner.isEmpty, !repo.isEmpty else {
+            throw GitHubAPIError.missingRepository
+        }
+        guard Int(issueNumber) != nil else {
+            throw GitHubAPIError.invalidIssueNumber
+        }
+
+        var components = URLComponents(url: repoURL("issues/\(issueNumber)/comments"), resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "per_page", value: String(limit)),
+        ]
+        return try await request(components?.url ?? repoURL("issues/\(issueNumber)/comments"))
+    }
+
     private func repoURL(_ path: String) -> URL {
         var url = apiURL
             .appending(path: "repos")
@@ -162,9 +177,22 @@ struct GitHubLabel: Decodable {
     let name: String
 }
 
-struct GitHubIssueComment: Decodable {
+struct GitHubIssueComment: Decodable, Identifiable {
     let id: Int
     let body: String?
+    let user: GitHubUser?
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case body
+        case user
+        case createdAt = "created_at"
+    }
+}
+
+struct GitHubUser: Decodable {
+    let login: String
 }
 
 struct GitHubCreateIssueRequest: Encodable {

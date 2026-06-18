@@ -180,6 +180,28 @@ struct ThreadDetailView: View {
                 }
             }
 
+            if settings.backend == .github {
+                Section("Recent Comments") {
+                    HStack {
+                        Button("Refresh Comments") {
+                            Task { await store.refreshDetails(for: thread, using: settings) }
+                        }
+                        Spacer()
+                        ProgressView()
+                            .opacity(store.isLoadingDetail ? 1 : 0)
+                    }
+                    let comments = store.comments(for: thread)
+                    if comments.isEmpty {
+                        Text("No comments loaded")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(comments) { comment in
+                            GitHubCommentRow(comment: comment)
+                        }
+                    }
+                }
+            }
+
             Section("Continue") {
                 TextField("Add an instruction", text: $message, axis: .vertical)
                     .lineLimit(2...6)
@@ -200,5 +222,33 @@ struct ThreadDetailView: View {
         }
         .navigationTitle("Thread")
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: thread.id) {
+            await store.refreshDetails(for: thread, using: settings)
+        }
+    }
+}
+
+struct GitHubCommentRow: View {
+    let comment: GitHubIssueComment
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(comment.user?.login ?? "GitHub")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                Spacer()
+                if let createdAt = comment.createdAt {
+                    Text(createdAt)
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Text(comment.body?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineLimit(8)
+        }
+        .padding(.vertical, 2)
     }
 }

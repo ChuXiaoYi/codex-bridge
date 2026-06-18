@@ -85,6 +85,7 @@ outputs/home-mac-bridge/install-launch-agent.sh
 - Watch 能刷新线程列表、打开线程详情并追加指令。
 - Watch 语音输入后能发送新任务或给已有线程追加指令。
 - iPhone `Sync Settings to Watch` 后，Watch 不需要手输 owner/repo/token 就能使用同一套 GitHub 或 Relay 配置。
+- GitHub 模式下，iPhone/Watch issue 详情页能加载最近评论，看到 Codex 的完成摘要。
 - GitHub 模式下，带 `codex-done` 的完成 issue 默认不再出现在 iPhone/Watch 待处理列表里；需要回看历史时打开 `Show Done`。
 - Codex 完成时，Relay `/events` 里出现 `notification_ready` 或 `notification_sent`。
 - 配好 APNs 并用真机签名安装后，iPhone/Watch 能收到系统完成通知。
@@ -121,7 +122,7 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
   outputs/doctor-remote-office.sh --ready
 ```
 
-`--ready` 会跑真实 GitHub 烟测、iPhone/watchOS 构建，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果卡在自启服务，先安装/加载 Home Mac 服务；如果卡在 GitHub 自通知，换 bot/小号 token 后再跑。
+`--ready` 会通过已安装的 Home Mac 自启服务跑真实 GitHub 烟测，构建 iPhone/watchOS target，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果卡在自启服务，先安装/加载 Home Mac 服务；如果卡在 GitHub 自通知，换 bot/小号 token 后再跑。
 
 看家里 Mac 服务状态：
 

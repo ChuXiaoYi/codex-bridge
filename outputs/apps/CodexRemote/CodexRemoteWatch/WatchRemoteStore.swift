@@ -63,8 +63,10 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
     @Published var status = "Ready"
     @Published var isSending = false
     @Published var isLoadingThreads = false
+    @Published var isLoadingDetail = false
     @Published var phoneSyncStatus = "Open iPhone app to sync settings"
     @Published private(set) var threads: [WatchCodexThread] = []
+    @Published private(set) var issueComments: [String: [WatchGitHubIssueComment]] = [:]
 
     private let defaults: UserDefaults
 
@@ -190,11 +192,34 @@ final class WatchRemoteStore: NSObject, ObservableObject, WCSessionDelegate {
             case .github:
                 guard let api = makeGitHubAPI() else { return }
                 try await api.addComment(issueNumber: thread.id, text: text)
+                try await loadGitHubComments(for: thread, using: api)
                 status = "Comment sent"
             }
         } catch {
             status = error.localizedDescription
         }
+    }
+
+    func refreshDetails(for thread: WatchCodexThread) async {
+        guard backend == .github else { return }
+        isLoadingDetail = true
+        defer { isLoadingDetail = false }
+
+        do {
+            guard let api = makeGitHubAPI() else { return }
+            try await loadGitHubComments(for: thread, using: api)
+            status = "Loaded \(issueComments[thread.id]?.count ?? 0) comments"
+        } catch {
+            status = error.localizedDescription
+        }
+    }
+
+    func comments(for thread: WatchCodexThread) -> [WatchGitHubIssueComment] {
+        issueComments[thread.id] ?? []
+    }
+
+    private func loadGitHubComments(for thread: WatchCodexThread, using api: WatchGitHubAPI) async throws {
+        issueComments[thread.id] = try await api.listComments(issueNumber: thread.id)
     }
 
     private var normalizedRelayURL: URL? {
@@ -470,6 +495,21 @@ struct WatchGitHubAPI {
         )
     }
 
+    func listComments(issueNumber: String, limit: Int = 8) async throws -> [WatchGitHubIssueComment] {
+        guard !owner.isEmpty, !repo.isEmpty else {
+            throw WatchRelayError.missingGitHubRepository
+        }
+        guard Int(issueNumber) != nil else {
+            throw WatchRelayError.invalidGitHubIssueNumber
+        }
+
+        var components = URLComponents(url: repoURL("issues/\(issueNumber)/comments"), resolvingAgainstBaseURL: false)
+        components?.queryItems = [
+            URLQueryItem(name: "per_page", value: String(limit)),
+        ]
+        return try await request(components?.url ?? repoURL("issues/\(issueNumber)/comments"))
+    }
+
     private func repoURL(_ path: String) -> URL {
         var url = apiURL
             .appending(path: "repos")
@@ -575,9 +615,22 @@ struct WatchGitHubLabel: Decodable {
     let name: String
 }
 
-struct WatchGitHubIssueComment: Decodable {
+struct WatchGitHubIssueComment: Decodable, Identifiable, Hashable {
     let id: Int
     let body: String?
+    let user: WatchGitHubUser?
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case body
+        case user
+        case createdAt = "created_at"
+    }
+}
+
+struct WatchGitHubUser: Decodable, Hashable {
+    let login: String
 }
 
 struct WatchGitHubCreateIssueRequest: Encodable {

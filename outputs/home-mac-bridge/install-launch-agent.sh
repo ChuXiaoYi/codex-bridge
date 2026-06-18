@@ -3,13 +3,15 @@ set -euo pipefail
 
 LABEL="com.codex.remote.home-mac"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DEFAULT_BRIDGE_CWD="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ENV_FILE="${CODEX_REMOTE_ENV_FILE:-$HOME/.codex-remote-home-mac.env}"
 SUPPORT_DIR="$HOME/Library/Application Support/CodexRemote"
+BUNDLE_DIR="$SUPPORT_DIR/home-mac-bridge"
 LOG_DIR="$HOME/Library/Logs"
 RUNNER="$SUPPORT_DIR/run-home-mac.sh"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 
-mkdir -p "$SUPPORT_DIR" "$HOME/Library/LaunchAgents" "$LOG_DIR"
+mkdir -p "$SUPPORT_DIR" "$BUNDLE_DIR" "$HOME/Library/LaunchAgents" "$LOG_DIR"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   cp "$SCRIPT_DIR/home-mac.env.example" "$ENV_FILE"
@@ -24,10 +26,10 @@ source "$ENV_FILE"
 set +a
 
 BACKEND="${CODEX_REMOTE_BACKEND:-http}"
-START_SCRIPT="$SCRIPT_DIR/start-home-mac.sh"
+START_SCRIPT="$BUNDLE_DIR/start-home-mac.sh"
 
 if [[ "$BACKEND" == "github" ]]; then
-  START_SCRIPT="$SCRIPT_DIR/start-home-mac-github.sh"
+  START_SCRIPT="$BUNDLE_DIR/start-home-mac-github.sh"
   if [[ -z "${GITHUB_TOKEN:-}" && -z "${GITHUB_TOKEN_COMMAND:-}" ]] \
     && ! command -v gh >/dev/null 2>&1 \
     && [[ ! -x /opt/homebrew/bin/gh ]] \
@@ -55,12 +57,25 @@ else
   fi
 fi
 
+cp "$SCRIPT_DIR/bridge.mjs" \
+  "$SCRIPT_DIR/github-issues-client.mjs" \
+  "$SCRIPT_DIR/relay-client.mjs" \
+  "$SCRIPT_DIR/start-home-mac.sh" \
+  "$SCRIPT_DIR/start-home-mac-github.sh" \
+  "$BUNDLE_DIR/"
+chmod 700 "$BUNDLE_DIR/start-home-mac.sh" "$BUNDLE_DIR/start-home-mac-github.sh"
+
 cat >"$RUNNER" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\${PATH:-}"
 set -a
 source "$ENV_FILE"
 set +a
+if [[ -z "\${BRIDGE_CWD:-}" ]]; then
+  export BRIDGE_CWD="$DEFAULT_BRIDGE_CWD"
+fi
+cd "$SUPPORT_DIR"
 exec "$START_SCRIPT"
 EOF
 chmod 700 "$RUNNER"
@@ -85,7 +100,7 @@ cat >"$PLIST" <<EOF
   <key>StandardErrorPath</key>
   <string>$LOG_DIR/codex-remote-home-mac.err.log</string>
   <key>WorkingDirectory</key>
-  <string>$SCRIPT_DIR</string>
+  <string>$SUPPORT_DIR</string>
 </dict>
 </plist>
 EOF

@@ -94,8 +94,9 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
 1. iPhone 上安装 GitHub Mobile，登录你的主账号。
 2. 在 GitHub Mobile 里确认这个 private repo 的通知没有被静音。
 3. 家里 Mac 的 token 最好来自 bot/小号，`GITHUB_NOTIFY_USERNAME` 和 `GITHUB_NOTIFY_ASSIGNEES` 填你的主账号。
-4. 锁屏 iPhone 或戴上 Watch，运行上面的真实端到端验证。
-5. 看到 GitHub Mobile 的完成评论/mention/assign 通知后，这条无服务器通知链路才算真的打通。
+4. 如果设置了 `GITHUB_NOTIFY_ASSIGNEES`，主账号必须是这个 private repo 的 collaborator，否则 GitHub 不允许把完成 issue assign 给主账号。
+5. 锁屏 iPhone 或戴上 Watch，运行上面的真实端到端验证。
+6. 看到 GitHub Mobile 的完成评论/mention/assign 通知后，这条无服务器通知链路才算真的打通。
 
 如果 `doctor` 提示 token actor 和 notify target 是同一个账号，任务执行仍然可用，但“离家及时收到完成通知”不够可靠；换成 bot/小号 token 后再测一次。
 
@@ -113,7 +114,7 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
   outputs/doctor-remote-office.sh --ready
 ```
 
-`--ready` 会跑真实 GitHub 端到端烟测、iPhone/watchOS 构建，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果提示 Home Mac 服务没装或没运行，说明这台 Mac 还不会自动盯信箱；如果提示 token actor 和通知目标相同，说明手机完成通知还不够可靠。
+`--ready` 会通过已安装的 Home Mac 自启服务跑真实 GitHub 端到端烟测，构建 iPhone/watchOS target，并把所有 warning 当失败。它应该没有 `WARN` 再出门；如果提示 Home Mac 服务没装或没运行，说明这台 Mac 还不会自动盯信箱；如果提示 token actor 和通知目标相同，说明手机完成通知还不够可靠。
 
 安装开机自启：
 
@@ -137,7 +138,8 @@ outputs/home-mac-bridge/status-launch-agent.sh
 4. `Done Label` 默认是 `codex-done`，带这个 label 的完成 issue 默认不会出现在任务列表里；打开 `Show Done` 可以回看。
 5. 点 `Sync Settings to Watch`，把这套配置发到 Apple Watch。
 6. `Send Task` 会创建 GitHub issue。
-7. 打开 issue 后输入新指令，`Comment` 会追加 GitHub comment。
+7. 打开 issue 后会加载最近评论，包括 Codex 的完成摘要。
+8. 输入新指令，`Comment` 会追加 GitHub comment。
 
 ### GitHub Mobile
 
@@ -160,6 +162,7 @@ outputs/home-mac-bridge/status-launch-agent.sh
 
 - 连接器会在 issue 里评论 `Started Codex thread ...`。
 - Codex 完成后会评论完成摘要，并给 issue 加 `codex-done` label。
+- CodexRemote iPhone/Watch 打开 issue 详情页时会显示最近评论，可以直接看完成摘要。
 - CodexRemote iPhone/Watch 默认隐藏带 `codex-done` 的 open issue，让列表只显示待处理任务；需要回看时打开 `Show Done`。
 - 在任意 issue 评论 `/codex list`，连接器会回复最近 Codex threads。
 

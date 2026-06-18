@@ -3,9 +3,11 @@ import Foundation
 @MainActor
 final class ThreadsStore: ObservableObject {
     @Published private(set) var threads: [CodexThread] = []
+    @Published private(set) var issueComments: [String: [GitHubIssueComment]] = [:]
     @Published var newTaskText = ""
     @Published var ephemeralNewTasks = false
     @Published var isLoading = false
+    @Published var isLoadingDetail = false
     @Published var statusMessage = "Not connected"
 
     func refresh(using settings: RelaySettings) async {
@@ -90,12 +92,38 @@ final class ThreadsStore: ObservableObject {
                     return
                 }
                 try await api.addComment(issueNumber: thread.id, text: trimmed)
+                try await loadGitHubComments(for: thread, using: api)
                 statusMessage = "Comment sent"
             }
             await refresh(using: settings)
         } catch {
             statusMessage = error.localizedDescription
         }
+    }
+
+    func refreshDetails(for thread: CodexThread, using settings: RelaySettings) async {
+        guard settings.backend == .github else { return }
+        isLoadingDetail = true
+        defer { isLoadingDetail = false }
+
+        do {
+            guard let api = makeGitHubAPI(settings: settings) else {
+                statusMessage = "Set a valid GitHub API URL"
+                return
+            }
+            try await loadGitHubComments(for: thread, using: api)
+            statusMessage = "Loaded \(issueComments[thread.id]?.count ?? 0) comments"
+        } catch {
+            statusMessage = error.localizedDescription
+        }
+    }
+
+    func comments(for thread: CodexThread) -> [GitHubIssueComment] {
+        issueComments[thread.id] ?? []
+    }
+
+    private func loadGitHubComments(for thread: CodexThread, using api: GitHubAPI) async throws {
+        issueComments[thread.id] = try await api.listComments(issueNumber: thread.id)
     }
 
     private func makeRelayAPI(settings: RelaySettings) -> RelayAPI? {

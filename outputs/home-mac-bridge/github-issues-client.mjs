@@ -210,9 +210,12 @@ class GitHubIssuesClient {
 
     for (const username of this.options.notifyAssignees) {
       try {
-        await this.github(`/users/${encodeURIComponent(username)}`);
+        await this.github(this.repoPath(`/assignees/${encodeURIComponent(username)}`));
       } catch (error) {
-        throw new Error(`GitHub notify assignee '${username}' is missing or not readable: ${error.message}`);
+        throw new Error(
+          `GitHub notify assignee '${username}' is not assignable in ${this.options.owner}/${this.options.repo}. ` +
+          `Add that account as a repository collaborator, or remove it from GITHUB_NOTIFY_ASSIGNEES.`,
+        );
       }
     }
   }

@@ -91,6 +91,10 @@ const githubServer = http.createServer(async (req, res) => {
     json(res, 200, { login: "alice" });
     return;
   }
+  if (req.method === "GET" && url.pathname === "/repos/test/codex/assignees/alice") {
+    json(res, 204, {});
+    return;
+  }
   if (req.method === "GET" && url.pathname === "/repos/test/codex/issues") {
     json(res, 200, issues);
     return;

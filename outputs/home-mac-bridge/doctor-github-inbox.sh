@@ -243,7 +243,14 @@ if [[ -n "${GITHUB_NOTIFY_ASSIGNEES:-}" ]]; then
     fi
     CODE="$(github_request GET "/users/$(urlencode "$username")" "$TMP_BODY")"
     check_response "$CODE" "$TMP_BODY" "Notify assignee lookup"
-    echo "Notify assignee: ${username}"
+    CODE="$(github_request GET "${BASE_PATH}/assignees/$(urlencode "$username")" "$TMP_BODY")"
+    if [[ "$CODE" == "204" || "$CODE" =~ ^2 ]]; then
+      echo "Notify assignee: ${username}"
+    else
+      echo "Notify assignee '${username}' is not assignable in ${GITHUB_OWNER}/${GITHUB_REPO}." >&2
+      echo "Add that account as a repository collaborator, or remove it from GITHUB_NOTIFY_ASSIGNEES and rely on GITHUB_NOTIFY_USERNAME mentions." >&2
+      exit 1
+    fi
   done
 fi
 

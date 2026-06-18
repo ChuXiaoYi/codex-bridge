@@ -132,6 +132,30 @@ struct WatchThreadDetailView: View {
                     .foregroundStyle(.secondary)
             }
 
+            if store.backend == .github {
+                Section("Recent") {
+                    Button {
+                        Task { await store.refreshDetails(for: thread) }
+                    } label: {
+                        if store.isLoadingDetail {
+                            ProgressView()
+                        } else {
+                            Text("Refresh Comments")
+                        }
+                    }
+
+                    let comments = store.comments(for: thread)
+                    if comments.isEmpty {
+                        Text("No comments loaded")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(comments) { comment in
+                            WatchCommentRow(comment: comment)
+                        }
+                    }
+                }
+            }
+
             Section("Continue") {
                 TextField("Speak or type", text: $message, axis: .vertical)
                     .lineLimit(2...5)
@@ -157,5 +181,24 @@ struct WatchThreadDetailView: View {
             }
         }
         .navigationTitle("Thread")
+        .task(id: thread.id) {
+            await store.refreshDetails(for: thread)
+        }
+    }
+}
+
+struct WatchCommentRow: View {
+    let comment: WatchGitHubIssueComment
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(comment.user?.login ?? "GitHub")
+                .font(.caption2)
+                .fontWeight(.semibold)
+            Text(comment.body?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(5)
+        }
     }
 }

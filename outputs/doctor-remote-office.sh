@@ -4,6 +4,7 @@ set -euo pipefail
 OUTPUT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ENV_FILE="${CODEX_REMOTE_ENV_FILE:-$HOME/.codex-remote-home-mac.env}"
 RUN_REAL_SMOKE=0
+RUN_SERVICE_SMOKE=0
 RUN_APP_BUILDS=0
 STRICT=0
 FAILURES=0
@@ -12,7 +13,7 @@ WARNINGS=0
 usage() {
   cat <<'EOF'
 Usage:
-  doctor-remote-office.sh [--env FILE] [--real-smoke] [--build-apps] [--strict]
+  doctor-remote-office.sh [--env FILE] [--real-smoke] [--service-smoke] [--build-apps] [--strict]
   doctor-remote-office.sh [--env FILE] --ready
 
 Checks the Codex Remote Office setup without installing background services.
@@ -20,9 +21,10 @@ Checks the Codex Remote Office setup without installing background services.
 Options:
   --env FILE     Home Mac env file. Defaults to ~/.codex-remote-home-mac.env
   --real-smoke   Run the real GitHub inbox smoke that creates and closes a test issue
+  --service-smoke Run a real GitHub smoke through the installed Home Mac service
   --build-apps   Build the iPhone and watchOS targets with CODE_SIGNING_ALLOWED=NO
   --strict       Exit non-zero when any warnings remain
-  --ready        Full readiness gate: --real-smoke --build-apps --strict
+  --ready        Full readiness gate: --service-smoke --build-apps --strict
   -h, --help    Show this help
 EOF
 }
@@ -37,6 +39,10 @@ while [[ $# -gt 0 ]]; do
       RUN_REAL_SMOKE=1
       shift
       ;;
+    --service-smoke)
+      RUN_SERVICE_SMOKE=1
+      shift
+      ;;
     --build-apps)
       RUN_APP_BUILDS=1
       shift
@@ -46,7 +52,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --ready)
-      RUN_REAL_SMOKE=1
+      RUN_SERVICE_SMOKE=1
       RUN_APP_BUILDS=1
       STRICT=1
       shift
@@ -328,6 +334,20 @@ check_real_smoke() {
   fi
 }
 
+check_service_smoke() {
+  section "Installed Service Smoke"
+  if [[ "$RUN_SERVICE_SMOKE" != "1" ]]; then
+    note "Skipped service smoke; pass --service-smoke to test the installed Home Mac service"
+    return
+  fi
+
+  if CODEX_REMOTE_ENV_FILE="$ENV_FILE" "$OUTPUT_DIR/smoke-github-inbox-service.sh"; then
+    pass "Installed service smoke passed"
+  else
+    fail "Installed service smoke failed"
+  fi
+}
+
 check_app_builds() {
   section "Mobile Builds"
   if [[ "$RUN_APP_BUILDS" != "1" ]]; then
@@ -364,6 +384,7 @@ check_github_notifications
 check_launch_agent
 check_processes
 check_real_smoke
+check_service_smoke
 check_app_builds
 
 section "Summary"
