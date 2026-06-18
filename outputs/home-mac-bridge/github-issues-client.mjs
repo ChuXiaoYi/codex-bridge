@@ -15,7 +15,9 @@ function parseArgs(argv) {
     owner: process.env.GITHUB_OWNER || "",
     repo: process.env.GITHUB_REPO || "",
     taskLabel: process.env.GITHUB_TASK_LABEL || "codex-remote",
+    doneLabel: Object.hasOwn(process.env, "GITHUB_DONE_LABEL") ? process.env.GITHUB_DONE_LABEL : "codex-done",
     notifyUsername: process.env.GITHUB_NOTIFY_USERNAME || "",
+    notifyAssignees: splitList(process.env.GITHUB_NOTIFY_ASSIGNEES || ""),
     allowPublicRepo: process.env.GITHUB_ALLOW_PUBLIC_REPO === "1",
     pollMs: Number(process.env.GITHUB_POLL_MS || DEFAULT_POLL_MS),
     bridgeUrl: process.env.BRIDGE_URL || DEFAULT_BRIDGE_URL,
@@ -29,6 +31,8 @@ function parseArgs(argv) {
     else if (arg === "--owner") options.owner = argv[++index];
     else if (arg === "--repo") options.repo = argv[++index];
     else if (arg === "--label") options.taskLabel = argv[++index];
+    else if (arg === "--done-label") options.doneLabel = argv[++index];
+    else if (arg === "--notify-assignees") options.notifyAssignees = splitList(argv[++index]);
     else if (arg === "--poll-ms") options.pollMs = Number(argv[++index]);
     else if (arg === "--bridge") options.bridgeUrl = argv[++index];
     else if (arg === "--bridge-token") options.bridgeToken = argv[++index];
@@ -60,7 +64,9 @@ Environment:
   GITHUB_OWNER       Repository owner
   GITHUB_REPO        Repository name
   GITHUB_TASK_LABEL  Issue label to poll, defaults to codex-remote
+  GITHUB_DONE_LABEL  Completion label to add, defaults to codex-done; set empty to disable
   GITHUB_NOTIFY_USERNAME  Optional username to mention on completion comments
+  GITHUB_NOTIFY_ASSIGNEES Optional comma-separated usernames to assign on completion
   GITHUB_ALLOW_PUBLIC_REPO=1 allows using a public repo as the task inbox
   GITHUB_POLL_MS     Poll interval, defaults to 15000
   BRIDGE_URL         Local Home Mac Bridge URL
@@ -70,6 +76,13 @@ Environment:
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function splitList(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function truncateText(value, limit) {
@@ -185,6 +198,22 @@ class GitHubIssuesClient {
       await this.github(this.repoPath(`/labels/${encodeURIComponent(this.options.taskLabel)}`));
     } catch (error) {
       throw new Error(`GitHub label '${this.options.taskLabel}' is missing or not readable: ${error.message}`);
+    }
+
+    if (this.options.doneLabel) {
+      try {
+        await this.github(this.repoPath(`/labels/${encodeURIComponent(this.options.doneLabel)}`));
+      } catch (error) {
+        throw new Error(`GitHub completion label '${this.options.doneLabel}' is missing or not readable: ${error.message}`);
+      }
+    }
+
+    for (const username of this.options.notifyAssignees) {
+      try {
+        await this.github(`/users/${encodeURIComponent(username)}`);
+      } catch (error) {
+        throw new Error(`GitHub notify assignee '${username}' is missing or not readable: ${error.message}`);
+      }
     }
   }
 
@@ -420,6 +449,23 @@ class GitHubIssuesClient {
       "",
       summary,
     ].join("\n"));
+    await this.markIssueCompleted(issueNumber);
+  }
+
+  async markIssueCompleted(issueNumber) {
+    if (this.options.doneLabel) {
+      await this.github(this.repoPath(`/issues/${encodeURIComponent(issueNumber)}/labels`), {
+        method: "POST",
+        body: JSON.stringify({ labels: [this.options.doneLabel] }),
+      });
+    }
+
+    if (this.options.notifyAssignees.length > 0) {
+      await this.github(this.repoPath(`/issues/${encodeURIComponent(issueNumber)}/assignees`), {
+        method: "POST",
+        body: JSON.stringify({ assignees: this.options.notifyAssignees }),
+      });
+    }
   }
 }
 

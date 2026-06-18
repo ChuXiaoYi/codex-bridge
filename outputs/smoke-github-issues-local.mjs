@@ -14,6 +14,8 @@ const issues = [
 ];
 const comments = [];
 const messages = [];
+const issueLabels = new Set(["codex-remote"]);
+const issueAssignees = new Set();
 const bridgeEventClients = new Set();
 let nextCommentId = 1000;
 
@@ -81,6 +83,14 @@ const githubServer = http.createServer(async (req, res) => {
     json(res, 200, { name: "codex-remote" });
     return;
   }
+  if (req.method === "GET" && url.pathname === "/repos/test/codex/labels/codex-done") {
+    json(res, 200, { name: "codex-done" });
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/users/alice") {
+    json(res, 200, { login: "alice" });
+    return;
+  }
   if (req.method === "GET" && url.pathname === "/repos/test/codex/issues") {
     json(res, 200, issues);
     return;
@@ -98,6 +108,22 @@ const githubServer = http.createServer(async (req, res) => {
     };
     comments.push(comment);
     json(res, 201, comment);
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/repos/test/codex/issues/1/labels") {
+    const body = await readBody(req);
+    for (const label of body.labels || []) {
+      issueLabels.add(label);
+    }
+    json(res, 200, [...issueLabels].map((name) => ({ name })));
+    return;
+  }
+  if (req.method === "POST" && url.pathname === "/repos/test/codex/issues/1/assignees") {
+    const body = await readBody(req);
+    for (const assignee of body.assignees || []) {
+      issueAssignees.add(assignee);
+    }
+    json(res, 201, { assignees: [...issueAssignees].map((login) => ({ login })) });
     return;
   }
   json(res, 404, { error: "not_found", path: url.pathname });
@@ -158,6 +184,7 @@ try {
       GITHUB_REPO: "codex",
       GITHUB_POLL_MS: "5000",
       GITHUB_NOTIFY_USERNAME: "alice",
+      GITHUB_NOTIFY_ASSIGNEES: "alice",
       BRIDGE_URL: bridgeUrl,
     },
     stdio: ["ignore", "pipe", "pipe"],
@@ -193,11 +220,13 @@ try {
   }
 
   await waitFor(
-    () => comments.some((comment) => comment.body.includes("codex-remote-completed:turn-2") && comment.body.includes("@alice")),
-    "completion comment",
+    () => comments.some((comment) => comment.body.includes("codex-remote-completed:turn-2") && comment.body.includes("@alice"))
+      && issueLabels.has("codex-done")
+      && issueAssignees.has("alice"),
+    "completion comment, done label, and assignee",
   );
 
-  console.log("GitHub Issues smoke passed: issue task, comment instruction, and completion comment are working.");
+  console.log("GitHub Issues smoke passed: issue task, comment instruction, completion comment, done label, and assignee are working.");
 } finally {
   client?.kill("SIGTERM");
   await delay(100);

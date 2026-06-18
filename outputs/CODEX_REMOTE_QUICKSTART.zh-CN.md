@@ -17,10 +17,10 @@
 
 核心做法：
 
-1. 建一个 GitHub private repo 和 `codex-remote` label。
+1. 建一个 GitHub private repo，以及 `codex-remote`、`codex-done` 两个 label。
 2. 创建只允许 Issues 读写的 fine-grained token。
 3. 家里 Mac 设置 `CODEX_REMOTE_BACKEND=github`、`GITHUB_TOKEN`、`GITHUB_OWNER`、`GITHUB_REPO`。
-4. 先跑 `outputs/home-mac-bridge/doctor-github-inbox.sh` 预检，确认 repo 是 private、Issues 和 label 都可用。
+4. 先跑 `outputs/home-mac-bridge/doctor-github-inbox.sh` 预检，确认 repo 是 private、Issues、label 和通知 assignee 都可用。
 5. 用 `outputs/home-mac-bridge/install-launch-agent.sh` 开机自启。
 6. iPhone 上在 CodexRemote 里选择 GitHub backend，填 owner/repo/label/token 后点 `Sync Settings to Watch`。
 7. Watch app 可以直接收 iPhone 同步的配置；没收到时点 `Request iPhone Settings`，然后用系统语音输入发任务。

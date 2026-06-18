@@ -14,8 +14,9 @@
 
 1. 新建一个 private repo，例如 `codex-remote`。不要用 public repo 放真实任务内容。
 2. 在 repo 里建一个 label：`codex-remote`。
-3. 创建 fine-grained personal access token，只给这个 repo 的 Issues 读写权限。
-4. 推荐用第二个 GitHub 小号或 bot 账号创建 token，并把它加为 private repo collaborator。这样 bot 评论完成结果时，GitHub Mobile 更容易给你的主账号发通知。
+3. 再建一个完成 label：`codex-done`。连接器会在 Codex 完成后给 issue 加这个 label。
+4. 创建 fine-grained personal access token，只给这个 repo 的 Issues 读写权限。
+5. 推荐用第二个 GitHub 小号或 bot 账号创建 token，并把它加为 private repo collaborator。这样 bot 评论完成结果时，GitHub Mobile 更容易给你的主账号发通知。
 
 GitHub 官方文档：
 
@@ -39,7 +40,9 @@ CODEX_REMOTE_BACKEND=github
 GITHUB_OWNER=你的用户名或组织名
 GITHUB_REPO=codex-remote
 GITHUB_TASK_LABEL=codex-remote
+GITHUB_DONE_LABEL=codex-done
 GITHUB_NOTIFY_USERNAME=你的主账号用户名
+GITHUB_NOTIFY_ASSIGNEES=你的主账号用户名
 ```
 
 如果家里 Mac 已经安装并登录 GitHub CLI，可以不写 `GITHUB_TOKEN`，连接器会临时调用 `gh auth token`。如果你不用 GitHub CLI，再写：
@@ -61,7 +64,7 @@ CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
   outputs/home-mac-bridge/doctor-github-inbox.sh
 ```
 
-它会检查 GitHub 登录/token、repo 是否 private、Issues 是否开启、`codex-remote` label 是否存在，以及这台 Mac 上能否找到 Codex Desktop CLI。缺 label 时可以让它创建：
+它会检查 GitHub 登录/token、repo 是否 private、Issues 是否开启、`codex-remote` 和 `codex-done` label 是否存在、通知 assignee 是否存在，以及这台 Mac 上能否找到 Codex Desktop CLI。缺 label 时可以让它创建：
 
 ```bash
 CODEX_REMOTE_ENV_FILE=~/.codex-remote-home-mac.env \
@@ -129,7 +132,7 @@ outputs/home-mac-bridge/status-launch-agent.sh
 查看结果：
 
 - 连接器会在 issue 里评论 `Started Codex thread ...`。
-- Codex 完成后会评论完成摘要。
+- Codex 完成后会评论完成摘要，并给 issue 加 `codex-done` label。
 - 在任意 issue 评论 `/codex list`，连接器会回复最近 Codex threads。
 
 ## Apple Watch 语音发任务
@@ -205,5 +208,5 @@ curl -X POST \
 - 优点：不买服务器、不备案、不配 HTTPS、不暴露家里端口。
 - 优点：GitHub Mobile 自带通知、评论和历史记录。
 - 缺点：不是实时链路，轮询有延迟。
-- 缺点：如果连接器用你自己的 token 评论，GitHub 可能不推送自己的评论；推荐 bot/小号 token + `GITHUB_NOTIFY_USERNAME`。
+- 缺点：如果连接器用你自己的 token 评论，GitHub 可能不推送自己的评论；推荐 bot/小号 token + `GITHUB_NOTIFY_USERNAME` + `GITHUB_NOTIFY_ASSIGNEES`。
 - 缺点：自家 CodexRemote iPhone/watchOS app 的 APNs 通知不参与这个模式；CodexRemote app 负责读写 GitHub，通知主要靠 GitHub Mobile。

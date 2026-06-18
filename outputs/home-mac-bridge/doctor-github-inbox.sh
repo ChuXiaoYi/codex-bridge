@@ -16,7 +16,7 @@ Checks the GitHub Issues no-server inbox configuration without printing tokens.
 Options:
   --env FILE       Load a Home Mac env file. Defaults to ~/.codex-remote-home-mac.env
   --check-bridge  Also check BRIDGE_URL /health
-  --create-label  Create GITHUB_TASK_LABEL when it is missing
+  --create-label  Create GITHUB_TASK_LABEL and GITHUB_DONE_LABEL when missing
   -h, --help      Show this help
 EOF
 }
@@ -165,13 +165,13 @@ need GITHUB_REPO
 resolve_github_token
 
 TASK_LABEL="${GITHUB_TASK_LABEL:-codex-remote}"
+DONE_LABEL="${GITHUB_DONE_LABEL-codex-done}"
 ALLOW_PUBLIC="${GITHUB_ALLOW_PUBLIC_REPO:-0}"
 TMP_BODY="$(mktemp)"
 trap 'rm -f "$TMP_BODY"' EXIT
 
 OWNER_PATH="$(urlencode "$GITHUB_OWNER")"
 REPO_PATH="$(urlencode "$GITHUB_REPO")"
-LABEL_PATH="$(urlencode "$TASK_LABEL")"
 BASE_PATH="/repos/${OWNER_PATH}/${REPO_PATH}"
 
 echo "Checking GitHub inbox ${GITHUB_OWNER}/${GITHUB_REPO} label '${TASK_LABEL}'..."
@@ -199,18 +199,45 @@ if [[ "$HAS_ISSUES" == "false" ]]; then
 fi
 echo "Issues: enabled"
 
-CODE="$(github_request GET "${BASE_PATH}/labels/${LABEL_PATH}" "$TMP_BODY")"
-if [[ "$CODE" =~ ^2 ]]; then
-  echo "Label: ${TASK_LABEL}"
-elif [[ "$CODE" == "404" && "$CREATE_LABEL" == "1" ]]; then
-  DATA="$(node -e 'console.log(JSON.stringify({name: process.argv[1], color: "0969DA", description: "Codex Remote task inbox"}))' "$TASK_LABEL")"
-  CODE="$(github_request POST "${BASE_PATH}/labels" "$TMP_BODY" "$DATA")"
-  check_response "$CODE" "$TMP_BODY" "Label creation"
-  echo "Label created: ${TASK_LABEL}"
-else
-  echo "Label '${TASK_LABEL}' is missing or not readable." >&2
-  echo "Create it with: gh label create ${TASK_LABEL} --repo ${GITHUB_OWNER}/${GITHUB_REPO} --color 0969DA --description 'Codex Remote task inbox'" >&2
+ensure_label() {
+  local name="$1"
+  local color="$2"
+  local description="$3"
+  local encoded
+  encoded="$(urlencode "$name")"
+  CODE="$(github_request GET "${BASE_PATH}/labels/${encoded}" "$TMP_BODY")"
+  if [[ "$CODE" =~ ^2 ]]; then
+    echo "Label: ${name}"
+    return
+  fi
+  if [[ "$CODE" == "404" && "$CREATE_LABEL" == "1" ]]; then
+    DATA="$(node -e 'console.log(JSON.stringify({name: process.argv[1], color: process.argv[2], description: process.argv[3]}))' "$name" "$color" "$description")"
+    CODE="$(github_request POST "${BASE_PATH}/labels" "$TMP_BODY" "$DATA")"
+    check_response "$CODE" "$TMP_BODY" "Label creation"
+    echo "Label created: ${name}"
+    return
+  fi
+  echo "Label '${name}' is missing or not readable." >&2
+  echo "Create it with: gh label create ${name} --repo ${GITHUB_OWNER}/${GITHUB_REPO} --color ${color} --description '${description}'" >&2
   exit 1
+}
+
+ensure_label "$TASK_LABEL" "0969DA" "Codex Remote task inbox"
+if [[ -n "$DONE_LABEL" ]]; then
+  ensure_label "$DONE_LABEL" "0E8A16" "Codex Remote completed task"
+fi
+
+if [[ -n "${GITHUB_NOTIFY_ASSIGNEES:-}" ]]; then
+  IFS=',' read -r -a notify_assignees <<<"$GITHUB_NOTIFY_ASSIGNEES"
+  for username in "${notify_assignees[@]}"; do
+    username="$(echo "$username" | xargs)"
+    if [[ -z "$username" ]]; then
+      continue
+    fi
+    CODE="$(github_request GET "/users/$(urlencode "$username")" "$TMP_BODY")"
+    check_response "$CODE" "$TMP_BODY" "Notify assignee lookup"
+    echo "Notify assignee: ${username}"
+  done
 fi
 
 if [[ ! -x /Applications/Codex.app/Contents/Resources/codex ]]; then

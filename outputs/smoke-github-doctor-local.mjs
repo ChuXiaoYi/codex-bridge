@@ -10,8 +10,8 @@ const outputDir = path.dirname(fileURLToPath(import.meta.url));
 const doctorScript = path.join(outputDir, "home-mac-bridge", "doctor-github-inbox.sh");
 
 let repoPrivate = true;
-let labelExists = true;
-let labelCreated = false;
+let labels = new Set(["codex-remote", "codex-done"]);
+let createdLabels = new Set();
 
 function json(res, status, body) {
   res.writeHead(status, { "content-type": "application/json" });
@@ -24,14 +24,24 @@ const server = http.createServer(async (req, res) => {
     json(res, 200, { full_name: "test/codex", private: repoPrivate, has_issues: true });
     return;
   }
-  if (req.method === "GET" && url.pathname === "/repos/test/codex/labels/codex-remote") {
-    json(res, labelExists ? 200 : 404, labelExists ? { name: "codex-remote" } : { message: "Not Found" });
+  const labelMatch = url.pathname.match(/^\/repos\/test\/codex\/labels\/([^/]+)$/);
+  if (req.method === "GET" && labelMatch) {
+    const label = decodeURIComponent(labelMatch[1]);
+    json(res, labels.has(label) ? 200 : 404, labels.has(label) ? { name: label } : { message: "Not Found" });
+    return;
+  }
+  if (req.method === "GET" && url.pathname === "/users/alice") {
+    json(res, 200, { login: "alice" });
     return;
   }
   if (req.method === "POST" && url.pathname === "/repos/test/codex/labels") {
-    labelExists = true;
-    labelCreated = true;
-    json(res, 201, { name: "codex-remote" });
+    let raw = "";
+    req.setEncoding("utf8");
+    for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw || "{}");
+    labels.add(body.name);
+    createdLabels.add(body.name);
+    json(res, 201, { name: body.name });
     return;
   }
   json(res, 404, { message: "Not Found" });
@@ -52,6 +62,8 @@ function makeEnvFile(apiUrl) {
     "GITHUB_OWNER=test",
     "GITHUB_REPO=codex",
     "GITHUB_TASK_LABEL=codex-remote",
+    "GITHUB_DONE_LABEL=codex-done",
+    "GITHUB_NOTIFY_ASSIGNEES=alice",
     "",
   ].join("\n"));
   return { dir, envPath };
@@ -103,23 +115,23 @@ const apiUrl = `http://${address.address}:${address.port}`;
 
 try {
   repoPrivate = true;
-  labelExists = true;
+  labels = new Set(["codex-remote", "codex-done"]);
   let result = await runDoctor(apiUrl);
   assert(result.status === 0, "Private inbox should pass.", result.stdout + result.stderr);
   assert(result.stdout.includes("GitHub inbox check passed."), "Expected success message.", result.stdout);
 
   repoPrivate = false;
-  labelExists = true;
+  labels = new Set(["codex-remote", "codex-done"]);
   result = await runDoctor(apiUrl);
   assert(result.status !== 0, "Public inbox should be rejected.");
   assert((result.stdout + result.stderr).includes("Repository is public"), "Expected public repo warning.", result.stdout + result.stderr);
 
   repoPrivate = true;
-  labelExists = false;
-  labelCreated = false;
+  labels = new Set();
+  createdLabels = new Set();
   result = await runDoctor(apiUrl, ["--create-label"]);
   assert(result.status === 0, "Missing label should be created with --create-label.", result.stdout + result.stderr);
-  assert(labelCreated, "Expected local mock label creation.");
+  assert(createdLabels.has("codex-remote") && createdLabels.has("codex-done"), "Expected local mock label creation.");
 
   console.log("GitHub inbox doctor smoke passed: private pass, public reject, and label creation are working.");
 } finally {

@@ -59,6 +59,8 @@ fi
 
 : "${GITHUB_OWNER:?Set GITHUB_OWNER in $ENV_FILE}"
 : "${GITHUB_REPO:?Set GITHUB_REPO in $ENV_FILE}"
+DONE_LABEL="${GITHUB_DONE_LABEL-codex-done}"
+NOTIFY_ASSIGNEES="${GITHUB_NOTIFY_ASSIGNEES:-}"
 
 resolve_github_token() {
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
@@ -228,8 +230,23 @@ process.exit(comments.some((comment) =>
 ) ? 0 : 1);
 NODE
   then
-    echo "Real GitHub inbox smoke passed: Codex completed and commented back."
-    exit 0
+    CODE="$(github_request GET "${BASE_PATH}/issues/${ISSUE_NUMBER}" "$TMP_BODY")"
+    check_response "$CODE" "$TMP_BODY" "Smoke issue lookup"
+    if node - "$TMP_BODY" "$DONE_LABEL" "$NOTIFY_ASSIGNEES" <<'NODE'
+const fs = require("fs");
+const [, , file, doneLabel, assigneesRaw] = process.argv;
+const issue = JSON.parse(fs.readFileSync(file, "utf8"));
+const labels = new Set((issue.labels || []).map((label) => label.name));
+const assignees = new Set((issue.assignees || []).map((assignee) => assignee.login));
+const expectedAssignees = assigneesRaw.split(",").map((value) => value.trim()).filter(Boolean);
+const hasDoneLabel = !doneLabel || labels.has(doneLabel);
+const hasAssignees = expectedAssignees.every((login) => assignees.has(login));
+process.exit(hasDoneLabel && hasAssignees ? 0 : 1);
+NODE
+    then
+      echo "Real GitHub inbox smoke passed: Codex completed, commented back, and marked the issue done."
+      exit 0
+    fi
   fi
   sleep 3
 done
